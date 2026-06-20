@@ -144,6 +144,440 @@ function saveKittenRecords(records) {
     return setData(STORAGE_KEYS.KITTEN_RECORDS, records);
 }
 
+// ==================== 云端同步 (Supabase) ====================
+
+// Supabase 配置存储键
+const SYNC_STORAGE_KEYS = {
+    SUPABASE_CONFIG: 'tiantian_supabase_config',
+    SYNC_QUEUE: 'tiantian_sync_queue',
+    LAST_SYNC_TIME: 'tiantian_last_sync_time',
+    FAMILY_INFO: 'tiantian_family_info'
+};
+
+// 全局变量
+let supabaseClient = null;
+let isSyncEnabled = false;
+let currentFamilyId = null;
+let syncInProgress = false;
+
+// 获取Supabase配置
+function getSupabaseConfig() {
+    try {
+        const config = localStorage.getItem(SYNC_STORAGE_KEYS.SUPABASE_CONFIG);
+        return config ? JSON.parse(config) : { url: '', anonKey: '', familyCode: '' };
+    } catch (e) {
+        console.error('读取Supabase配置失败:', e);
+        return { url: '', anonKey: '', familyCode: '' };
+    }
+}
+
+// 保存Supabase配置
+function saveSupabaseConfig(config) {
+    try {
+        localStorage.setItem(SYNC_STORAGE_KEYS.SUPABASE_CONFIG, JSON.stringify(config));
+        return true;
+    } catch (e) {
+        console.error('保存Supabase配置失败:', e);
+        return false;
+    }
+}
+
+// 初始化Supabase客户端
+function initSupabase() {
+    const config = getSupabaseConfig();
+    
+    if (!config.url || !config.anonKey) {
+        isSyncEnabled = false;
+        return false;
+    }
+    
+    try {
+        supabaseClient = window.supabase.createClient(config.url, config.anonKey);
+        isSyncEnabled = true;
+        console.log('Supabase 初始化成功');
+        return true;
+    } catch (e) {
+        console.error('Supabase 初始化失败:', e);
+        isSyncEnabled = false;
+        return false;
+    }
+}
+
+// 获取或创建家庭
+async function getOrCreateFamily(familyCode) {
+    if (!isSyncEnabled || !supabaseClient) return null;
+    
+    try {
+        // 先查询是否存在
+        const { data, error } = await supabaseClient
+            .from('families')
+            .select('*')
+            .eq('family_code', familyCode)
+            .single();
+        
+        if (error && error.code !== 'PGRST116') {
+            console.error('查询家庭失败:', error);
+            return null;
+        }
+        
+        if (data) {
+            currentFamilyId = data.id;
+            localStorage.setItem(SYNC_STORAGE_KEYS.FAMILY_INFO, JSON.stringify(data));
+            return data;
+        }
+        
+        // 不存在则创建
+        const { data: newFamily, error: createError } = await supabaseClient
+            .from('families')
+            .insert({ family_code: familyCode, name: familyCode })
+            .select()
+            .single();
+        
+        if (createError) {
+            console.error('创建家庭失败:', createError);
+            return null;
+        }
+        
+        currentFamilyId = newFamily.id;
+        localStorage.setItem(SYNC_STORAGE_KEYS.FAMILY_INFO, JSON.stringify(newFamily));
+        return newFamily;
+    } catch (e) {
+        console.error('获取家庭异常:', e);
+        return null;
+    }
+}
+
+// 获取同步队列
+function getSyncQueue() {
+    try {
+        const queue = localStorage.getItem(SYNC_STORAGE_KEYS.SYNC_QUEUE);
+        return queue ? JSON.parse(queue) : [];
+    } catch (e) {
+        console.error('读取同步队列失败:', e);
+        return [];
+    }
+}
+
+// 保存同步队列
+function saveSyncQueue(queue) {
+    try {
+        localStorage.setItem(SYNC_STORAGE_KEYS.SYNC_QUEUE, JSON.stringify(queue));
+        return true;
+    } catch (e) {
+        console.error('保存同步队列失败:', e);
+        return false;
+    }
+}
+
+// 添加到同步队列
+function addToSyncQueue(tableName, operation, data) {
+    const queue = getSyncQueue();
+    queue.push({
+        id: generateId(),
+        tableName,
+        operation, // 'insert', 'update', 'delete'
+        data,
+        timestamp: Date.now()
+    });
+    saveSyncQueue(queue);
+    
+    // 尝试立即同步
+    processSyncQueue();
+}
+
+// 处理同步队列
+async function processSyncQueue() {
+    if (!isSyncEnabled || !currentFamilyId || syncInProgress) return;
+    
+    const queue = getSyncQueue();
+    if (queue.length === 0) return;
+    
+    syncInProgress = true;
+    console.log(`开始处理同步队列，共 ${queue.length} 条待同步`);
+    
+    let successCount = 0;
+    const failedItems = [];
+    
+    for (const item of queue) {
+        try {
+            const success = await syncOneItem(item);
+            if (success) {
+                successCount++;
+            } else {
+                failedItems.push(item);
+            }
+        } catch (e) {
+            console.error('同步项失败:', e);
+            failedItems.push(item);
+        }
+    }
+    
+    // 保存失败的项，等待下次同步
+    saveSyncQueue(failedItems);
+    
+    // 更新最后同步时间
+    localStorage.setItem(SYNC_STORAGE_KEYS.LAST_SYNC_TIME, Date.now().toString());
+    
+    syncInProgress = false;
+    console.log(`同步完成：成功 ${successCount} 条，失败 ${failedItems.length} 条`);
+    
+    if (successCount > 0) {
+        showToast(`已同步 ${successCount} 条记录`);
+    }
+}
+
+// 同步单条记录
+async function syncOneItem(item) {
+    if (!supabaseClient || !currentFamilyId) return false;
+    
+    try {
+        const { tableName, operation, data } = item;
+        const dataWithFamily = { ...data, family_id: currentFamilyId };
+        
+        let result;
+        
+        switch (operation) {
+            case 'insert':
+                result = await supabaseClient.from(tableName).insert(dataWithFamily);
+                break;
+            case 'update':
+                result = await supabaseClient.from(tableName).update(dataWithFamily).eq('id', data.id);
+                break;
+            case 'delete':
+                result = await supabaseClient.from(tableName).delete().eq('id', data.id);
+                break;
+            default:
+                return false;
+        }
+        
+        if (result.error) {
+            console.error(`同步 ${operation} ${tableName} 失败:`, result.error);
+            return false;
+        }
+        
+        return true;
+    } catch (e) {
+        console.error('同步异常:', e);
+        return false;
+    }
+}
+
+// 从云端拉取所有数据
+async function pullAllData() {
+    if (!isSyncEnabled || !currentFamilyId || !supabaseClient) {
+        console.log('同步未启用，跳过数据拉取');
+        return false;
+    }
+    
+    console.log('开始从云端拉取数据...');
+    
+    try {
+        // 拉取幼崽数据
+        const { data: kittens, error: kittensError } = await supabaseClient
+            .from('kittens')
+            .select('*')
+            .eq('family_id', currentFamilyId);
+        
+        if (!kittensError && kittens && kittens.length > 0) {
+            // 转换字段名（snake_case 转 camelCase）
+            const convertedKittens = kittens.map(k => ({
+                id: k.id,
+                name: k.name,
+                gender: k.gender,
+                color: k.color,
+                birthDate: k.birth_date,
+                weight: k.weight,
+                weightHistory: k.weight_history || [],
+                note: k.note
+            }));
+            saveKittens(convertedKittens);
+            console.log(`拉取幼崽数据：${convertedKittens.length} 条`);
+        }
+        
+        // 拉取喂食记录
+        const { data: feedingLogs, error: feedingError } = await supabaseClient
+            .from('feeding_logs')
+            .select('*')
+            .eq('family_id', currentFamilyId)
+            .order('time', { ascending: false });
+        
+        if (!feedingError && feedingLogs) {
+            const convertedLogs = feedingLogs.map(l => ({
+                id: l.id,
+                type: l.type,
+                amount: l.amount,
+                time: l.time,
+                note: l.note,
+                photo: l.photo
+            }));
+            saveFeedingLogs(convertedLogs);
+            console.log(`拉取喂食记录：${convertedLogs.length} 条`);
+        }
+        
+        // 拉取喂药记录
+        const { data: medicineLogs, error: medicineError } = await supabaseClient
+            .from('medicine_logs')
+            .select('*')
+            .eq('family_id', currentFamilyId)
+            .order('time', { ascending: false });
+        
+        if (!medicineError && medicineLogs) {
+            const convertedLogs = medicineLogs.map(l => ({
+                id: l.id,
+                name: l.name,
+                dose: l.dose,
+                unit: l.unit,
+                time: l.time,
+                note: l.note,
+                photo: l.photo
+            }));
+            saveMedicineLogs(convertedLogs);
+            console.log(`拉取喂药记录：${convertedLogs.length} 条`);
+        }
+        
+        // 拉取吃奶记录
+        const { data: nursingLogs, error: nursingError } = await supabaseClient
+            .from('nursing_logs')
+            .select('*')
+            .eq('family_id', currentFamilyId)
+            .order('start_time', { ascending: false });
+        
+        if (!nursingError && nursingLogs) {
+            const convertedLogs = nursingLogs.map(l => ({
+                id: l.id,
+                startTime: l.start_time,
+                endTime: l.end_time,
+                duration: l.duration,
+                kittenIds: l.kitten_ids || [],
+                note: l.note,
+                photo: l.photo
+            }));
+            saveNursingLogs(convertedLogs);
+            console.log(`拉取吃奶记录：${convertedLogs.length} 条`);
+        }
+        
+        // 拉取照片
+        const { data: photos, error: photosError } = await supabaseClient
+            .from('photos')
+            .select('*')
+            .eq('family_id', currentFamilyId)
+            .order('created_at', { ascending: false });
+        
+        if (!photosError && photos) {
+            const convertedPhotos = photos.map(p => ({
+                id: p.id,
+                url: p.url,
+                category: p.category,
+                desc: p.desc
+            }));
+            savePhotos(convertedPhotos);
+            console.log(`拉取照片：${convertedPhotos.length} 条`);
+        }
+        
+        // 拉取幼崽成长记录
+        const { data: kittenRecords, error: kittenRecordsError } = await supabaseClient
+            .from('kitten_records')
+            .select('*')
+            .eq('family_id', currentFamilyId)
+            .order('time', { ascending: false });
+        
+        if (!kittenRecordsError && kittenRecords) {
+            const convertedRecords = kittenRecords.map(r => ({
+                id: r.id,
+                kittenIds: r.kitten_ids || [],
+                type: r.type,
+                title: r.title,
+                content: r.content,
+                time: r.time,
+                photo: r.photo
+            }));
+            saveKittenRecords(convertedRecords);
+            console.log(`拉取成长记录：${convertedRecords.length} 条`);
+        }
+        
+        // 拉取设置
+        const { data: settings, error: settingsError } = await supabaseClient
+            .from('settings')
+            .select('*')
+            .eq('family_id', currentFamilyId)
+            .single();
+        
+        if (!settingsError && settings) {
+            const convertedSettings = {
+                darkMode: settings.dark_mode,
+                defaultKittenNames: settings.default_kitten_names || [],
+                medicines: settings.medicines || [],
+                medicineDoses: settings.medicine_doses || []
+            };
+            saveSettings(convertedSettings);
+            console.log('拉取设置成功');
+        }
+        
+        showToast('数据同步完成');
+        return true;
+    } catch (e) {
+        console.error('拉取数据异常:', e);
+        showToast('数据同步失败');
+        return false;
+    }
+}
+
+// 配置并启用同步
+async function enableSync(url, anonKey, familyCode) {
+    // 保存配置
+    saveSupabaseConfig({ url, anonKey, familyCode });
+    
+    // 初始化客户端
+    const initSuccess = initSupabase();
+    if (!initSuccess) {
+        showToast('Supabase初始化失败');
+        return false;
+    }
+    
+    // 获取或创建家庭
+    const family = await getOrCreateFamily(familyCode);
+    if (!family) {
+        showToast('获取家庭信息失败');
+        return false;
+    }
+    
+    // 拉取云端数据
+    await pullAllData();
+    
+    // 处理本地待同步队列
+    await processSyncQueue();
+    
+    showToast('云端同步已启用');
+    return true;
+}
+
+// 禁用同步
+function disableSync() {
+    isSyncEnabled = false;
+    supabaseClient = null;
+    currentFamilyId = null;
+    showToast('云端同步已关闭');
+}
+
+// 手动触发同步
+async function triggerSync() {
+    if (!isSyncEnabled) {
+        showToast('请先配置云端同步');
+        return;
+    }
+    
+    showToast('正在同步...');
+    
+    // 先拉取云端最新数据
+    await pullAllData();
+    
+    // 再推送本地待同步数据
+    await processSyncQueue();
+    
+    // 刷新页面显示
+    refreshAll();
+}
+
 // ==================== 工具函数 ====================
 
 function formatDate(date, format = 'YYYY-MM-DD') {
@@ -2971,6 +3405,66 @@ function loadDefaultNames() {
     }
 }
 
+// 保存同步配置并启用同步
+async function saveSyncConfig() {
+    const url = document.getElementById('supabaseUrl').value.trim();
+    const anonKey = document.getElementById('supabaseAnonKey').value.trim();
+    const familyCode = document.getElementById('familyCode').value.trim();
+    
+    if (!url || !anonKey || !familyCode) {
+        showToast('请填写完整的配置信息');
+        return;
+    }
+    
+    showToast('正在配置云端同步...');
+    
+    const success = await enableSync(url, anonKey, familyCode);
+    
+    if (success) {
+        updateSyncStatus();
+        refreshAll();
+    }
+}
+
+// 加载同步配置到设置页面
+function loadSyncConfig() {
+    const config = getSupabaseConfig();
+    
+    const urlInput = document.getElementById('supabaseUrl');
+    const keyInput = document.getElementById('supabaseAnonKey');
+    const codeInput = document.getElementById('familyCode');
+    
+    if (urlInput) urlInput.value = config.url || '';
+    if (keyInput) keyInput.value = config.anonKey || '';
+    if (codeInput) codeInput.value = config.familyCode || '';
+    
+    updateSyncStatus();
+}
+
+// 更新同步状态显示
+function updateSyncStatus() {
+    const statusText = document.getElementById('syncStatusText');
+    if (!statusText) return;
+    
+    if (isSyncEnabled && currentFamilyId) {
+        const lastSync = localStorage.getItem(SYNC_STORAGE_KEYS.LAST_SYNC_TIME);
+        const queue = getSyncQueue();
+        let status = '已连接';
+        if (queue.length > 0) {
+            status += ` · ${queue.length}条待同步`;
+        }
+        if (lastSync) {
+            const time = new Date(parseInt(lastSync));
+            status += ` · 上次同步${formatTimeAgo(time)}`;
+        }
+        statusText.textContent = status;
+        statusText.className = 'text-xs text-green-500';
+    } else {
+        statusText.textContent = '未配置';
+        statusText.className = 'text-xs text-gray-400';
+    }
+}
+
 // 渲染设置页面的药品列表
 function renderMedicineSettings() {
     const settings = getSettings();
@@ -3331,6 +3825,30 @@ function init() {
     // 渲染药品和剂量设置
     renderMedicineSettings();
     renderDoseSettings();
+    
+    // 加载并初始化云端同步
+    loadSyncConfig();
+    if (initSupabase()) {
+        // 如果有配置，尝试获取家庭信息并拉取数据
+        const config = getSupabaseConfig();
+        if (config.familyCode) {
+            getOrCreateFamily(config.familyCode).then(family => {
+                if (family) {
+                    pullAllData().then(() => {
+                        refreshAll();
+                        processSyncQueue();
+                    });
+                }
+            });
+        }
+    }
+    
+    // 定时同步（每5分钟检查一次）
+    setInterval(() => {
+        if (isSyncEnabled) {
+            processSyncQueue();
+        }
+    }, 5 * 60 * 1000);
     
     // 检查通知权限状态
     if ('Notification' in window) {
