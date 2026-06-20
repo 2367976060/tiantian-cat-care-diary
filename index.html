@@ -163,8 +163,14 @@
                 <i data-lucide="baby" class="w-5 h-5 text-primary"></i>
                 幼崽管理
             </h2>
-            <div id="kittensList" class="space-y-3">
-                <!-- 幼崽列表由JS生成 -->
+            <!-- 横排幼崽头像 -->
+            <div id="kittensList" class="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+                <!-- 幼崽头像由JS生成 -->
+            </div>
+            
+            <!-- 幼崽详情区域 -->
+            <div id="kittenDetailArea" class="mt-4">
+                <p class="text-center text-gray-400 py-8 text-sm">点击上方幼崽头像查看详情</p>
             </div>
         </section>
 
@@ -414,6 +420,41 @@
                     </label>
                 </div>
                 
+                <!-- 幼崽默认名称配置 -->
+                <div class="p-4 border-b border-gray-100">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                            <i data-lucide="baby" class="w-5 h-5 text-primary"></i>
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-800">幼崽默认名称</div>
+                            <div class="text-xs text-gray-400">自定义按只记录时的名称</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-5 gap-2">
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">老大</label>
+                            <input type="text" id="defaultName1" class="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary" placeholder="老大" onchange="saveDefaultNames()">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">老二</label>
+                            <input type="text" id="defaultName2" class="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary" placeholder="老二" onchange="saveDefaultNames()">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">老三</label>
+                            <input type="text" id="defaultName3" class="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary" placeholder="老三" onchange="saveDefaultNames()">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">老四</label>
+                            <input type="text" id="defaultName4" class="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary" placeholder="老四" onchange="saveDefaultNames()">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 mb-1 block">老五</label>
+                            <input type="text" id="defaultName5" class="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary" placeholder="老五" onchange="saveDefaultNames()">
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- 清除数据 -->
                 <div class="p-4 flex items-center justify-between">
                     <div class="flex items-center gap-3">
@@ -622,7 +663,14 @@
     <div id="modal-addNursing" class="modal hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
         <div class="modal-overlay absolute inset-0 bg-black/50" onclick="closeModal('modal-addNursing')"></div>
         <div class="modal-content bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg p-6 relative z-10 animate-slideUp max-h-[90vh] overflow-y-auto">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">记录吃奶</h3>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-gray-800">记录吃奶</h3>
+                <!-- 统计/按只切换 -->
+                <div class="flex bg-gray-100 rounded-full p-1">
+                    <button onclick="switchNursingMode('stats')" id="nursingModeStats" class="nursing-mode-btn px-3 py-1 rounded-full text-xs font-medium bg-white text-primary shadow-sm">统计</button>
+                    <button onclick="switchNursingMode('perKitten')" id="nursingModePerKitten" class="nursing-mode-btn px-3 py-1 rounded-full text-xs font-medium text-gray-500">按只</button>
+                </div>
+            </div>
             <form id="nursingForm" onsubmit="saveNursing(event)">
                 <div class="space-y-4">
                     <div class="grid grid-cols-2 gap-4">
@@ -638,6 +686,21 @@
                     <div class="text-center text-sm text-gray-500">
                         时长：<span id="nursingDuration" class="font-medium text-amber-500">请选择时间</span>
                     </div>
+                    
+                    <!-- 统计模式：大文本框 -->
+                    <div id="nursingStatsMode">
+                        <label class="text-sm text-gray-600 mb-1 block">总体情况</label>
+                        <textarea id="nursingStatsNote" rows="4" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors resize-none" placeholder="记录5只幼崽的总体情况..."></textarea>
+                    </div>
+                    
+                    <!-- 按只模式：每只幼崽单独输入 -->
+                    <div id="nursingPerKittenMode" class="hidden">
+                        <label class="text-sm text-gray-600 mb-2 block">按只记录</label>
+                        <div id="perKittenInputs" class="space-y-2">
+                            <!-- 按只输入由JS生成 -->
+                        </div>
+                    </div>
+                    
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <label class="text-sm text-gray-600">参与幼崽</label>
@@ -649,10 +712,6 @@
                         <div id="kittensCheckboxes" class="grid grid-cols-2 gap-2">
                             <!-- 幼崽多选由JS生成 -->
                         </div>
-                    </div>
-                    <div>
-                        <label class="text-sm text-gray-600 mb-1 block">备注</label>
-                        <textarea id="nursingNote" rows="2" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors resize-none" placeholder="添加备注..."></textarea>
                     </div>
                     <div>
                         <label class="text-sm text-gray-600 mb-2 block">照片（可选）</label>
@@ -779,9 +838,14 @@
         <div class="modal-content bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg p-6 relative z-10 animate-slideUp max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-bold text-gray-800" id="kittenDetailName">幼崽详情</h3>
-                <button onclick="closeModal('modal-kittenDetail')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
-                    <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button onclick="editKitten(currentKittenId)" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+                        <i data-lucide="edit-2" class="w-4 h-4 text-gray-500"></i>
+                    </button>
+                    <button onclick="closeModal('modal-kittenDetail')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+                        <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
+                    </button>
+                </div>
             </div>
             
             <!-- 幼崽信息 -->
@@ -809,6 +873,11 @@
                         <div class="text-xs text-gray-500">出生天数</div>
                     </div>
                 </div>
+                <!-- 备注 -->
+                <div class="mt-3 pt-3 border-t border-white/40">
+                    <div class="text-xs text-gray-500 mb-1">备注</div>
+                    <div class="text-sm text-gray-700" id="kittenDetailNote">-</div>
+                </div>
             </div>
             
             <!-- 体重曲线 -->
@@ -819,6 +888,20 @@
                 </div>
             </div>
             
+            <!-- 吃奶记录 -->
+            <div class="mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="text-sm font-semibold text-gray-600">吃奶记录</h4>
+                    <button onclick="toggleNursingRecords()" class="text-xs text-primary flex items-center gap-1">
+                        <span id="nursingRecordsToggleText">展开</span>
+                        <i data-lucide="chevron-down" class="w-3 h-3" id="nursingRecordsToggleIcon"></i>
+                    </button>
+                </div>
+                <div id="kittenNursingRecords" class="hidden space-y-2 max-h-48 overflow-y-auto">
+                    <!-- 吃奶记录由JS生成 -->
+                </div>
+            </div>
+            
             <!-- 成长记录 -->
             <div>
                 <h4 class="text-sm font-semibold text-gray-600 mb-2">成长记录</h4>
@@ -826,6 +909,52 @@
                     <!-- 成长记录由JS生成 -->
                 </div>
             </div>
+        </div>
+    </div>
+    
+    <!-- 弹窗：编辑幼崽信息 -->
+    <div id="modal-editKitten" class="modal hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div class="modal-overlay absolute inset-0 bg-black/50" onclick="closeModal('modal-editKitten')"></div>
+        <div class="modal-content bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg p-6 relative z-10 animate-slideUp">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">编辑幼崽信息</h3>
+            <form id="kittenForm" onsubmit="saveKitten(event)">
+                <input type="hidden" id="editKittenId">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">名字</label>
+                        <input type="text" id="editKittenName" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="请输入名字">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm text-gray-600 mb-1 block">性别</label>
+                            <select id="editKittenGender" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors bg-white">
+                                <option value="公">公</option>
+                                <option value="母">母</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-sm text-gray-600 mb-1 block">体重(g)</label>
+                            <input type="number" id="editKittenWeight" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="体重">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">毛色</label>
+                        <input type="text" id="editKittenColor" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="毛色">
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">出生日期</label>
+                        <input type="date" id="editKittenBirthDate" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors">
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">备注</label>
+                        <textarea id="editKittenNote" rows="3" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors resize-none" placeholder="添加备注..."></textarea>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="closeModal('modal-editKitten')" class="flex-1 py-3 border border-gray-200 rounded-xl text-gray-600 font-medium active:bg-gray-50">取消</button>
+                    <button type="submit" class="flex-1 py-3 bg-primary text-white rounded-xl font-medium active:scale-95 transition-transform">保存</button>
+                </div>
+            </form>
         </div>
     </div>
 
