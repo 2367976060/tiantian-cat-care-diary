@@ -252,6 +252,16 @@ function showPage(pageName) {
         currentPage = pageName;
     }
     
+    // 控制顶部栏显示：仅首页显示
+    const topHeader = document.getElementById('topHeader');
+    if (topHeader) {
+        if (pageName === 'home') {
+            topHeader.classList.remove('hidden');
+        } else {
+            topHeader.classList.add('hidden');
+        }
+    }
+    
     // 更新底部导航状态
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -351,10 +361,7 @@ function renderKittens() {
             : kitten.weight;
         
         return `
-            <div class="bg-white rounded-2xl shadow-card p-3 relative">
-                <button onclick="deleteKitten(${kitten.id})" class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors">
-                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                </button>
+            <div class="bg-white rounded-2xl shadow-card p-3">
                 <div class="flex items-center gap-2 mb-2">
                     <div class="w-10 h-10 bg-gradient-to-br ${avatarColor} rounded-full flex items-center justify-center text-white text-sm font-bold shadow-soft">
                         ${kitten.name.charAt(0)}
@@ -526,6 +533,7 @@ function saveNewKitten(event) {
     const name = document.getElementById('editKittenName').value || '幼崽';
     const gender = document.getElementById('editKittenGender').value || '公';
     const weight = parseFloat(document.getElementById('editKittenWeight').value) || 100;
+    const birthWeight = parseFloat(document.getElementById('editKittenBirthWeight').value) || weight;
     const color = document.getElementById('editKittenColor').value || '未知';
     const birthDate = document.getElementById('editKittenBirthDate').value || formatDate(new Date(), 'YYYY-MM-DD');
     const note = document.getElementById('editKittenNote').value || '';
@@ -543,7 +551,7 @@ function saveNewKitten(event) {
         color: color,
         birthDate: birthDate,
         note: note,
-        weightHistory: [{ date: birthDate, weight: weight }]
+        weightHistory: [{ date: birthDate, weight: birthWeight }]
     };
     
     kittens.push(newKitten);
@@ -556,6 +564,15 @@ function saveNewKitten(event) {
     closeModal('modal-editKitten');
     showToast('幼崽已添加');
     renderKittens();
+}
+
+// 删除当前编辑的幼崽
+function deleteCurrentKitten() {
+    const kittenId = parseInt(document.getElementById('editKittenId').value);
+    if (!kittenId) return;
+    
+    deleteKitten(kittenId);
+    closeModal('modal-editKitten');
 }
 
 // 删除幼崽
@@ -650,12 +667,18 @@ function editKitten() {
     // 确保birthDate字段存在且格式正确
     const birthDate = kitten.birthDate || '2024-06-15';
     
+    // 获取出生体重（weightHistory的第一条记录）
+    const birthWeight = kitten.weightHistory && kitten.weightHistory.length > 0 
+        ? kitten.weightHistory[0].weight 
+        : kitten.weight;
+    
     document.getElementById('editKittenId').value = kitten.id;
     document.getElementById('editKittenName').value = kitten.name;
     document.getElementById('editKittenGender').value = kitten.gender;
     document.getElementById('editKittenWeight').value = kitten.weight;
     document.getElementById('editKittenColor').value = kitten.color;
     document.getElementById('editKittenBirthDate').value = birthDate;
+    document.getElementById('editKittenBirthWeight').value = birthWeight;
     document.getElementById('editKittenNote').value = kitten.note || '';
     
     // 恢复弹窗标题和提交行为
@@ -682,6 +705,9 @@ function saveKitten(event) {
     const oldWeight = kittens[kittenIndex].weight;
     const newWeight = parseFloat(document.getElementById('editKittenWeight').value) || 0;
     
+    // 获取出生体重
+    const newBirthWeight = parseFloat(document.getElementById('editKittenBirthWeight').value) || newWeight;
+    
     // 获取出生日期并验证格式
     let birthDate = document.getElementById('editKittenBirthDate').value;
     if (!birthDate || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
@@ -690,6 +716,15 @@ function saveKitten(event) {
     
     // 创建新的幼崽对象，确保所有字段都存在
     const oldKitten = kittens[kittenIndex];
+    let weightHistory = oldKitten.weightHistory || [{ date: birthDate, weight: newWeight }];
+    
+    // 更新出生体重（第一条记录）
+    if (weightHistory.length > 0) {
+        weightHistory[0] = { date: birthDate, weight: newBirthWeight };
+    } else {
+        weightHistory = [{ date: birthDate, weight: newBirthWeight }];
+    }
+    
     kittens[kittenIndex] = {
         id: oldKitten.id,
         name: document.getElementById('editKittenName').value || '幼崽',
@@ -698,19 +733,18 @@ function saveKitten(event) {
         color: document.getElementById('editKittenColor').value || '未知',
         birthDate: birthDate,
         note: document.getElementById('editKittenNote').value || '',
-        weightHistory: oldKitten.weightHistory || [{ date: birthDate, weight: newWeight }]
+        weightHistory: weightHistory
     };
     
-    // 如果体重变化，添加到体重历史
+    // 如果当前体重变化，添加到体重历史（如果不是同一天的出生记录）
     if (oldWeight !== newWeight) {
         const today = formatDate(new Date(), 'YYYY-MM-DD');
-        const weightHistory = kittens[kittenIndex].weightHistory || [];
         const lastRecord = weightHistory[weightHistory.length - 1];
         
-        // 如果今天已经有记录，更新它；否则添加新记录
-        if (lastRecord && lastRecord.date === today) {
+        // 如果今天已经有记录（且不是出生记录），更新它；否则添加新记录
+        if (lastRecord && lastRecord.date === today && weightHistory.length > 1) {
             lastRecord.weight = newWeight;
-        } else {
+        } else if (today !== birthDate) {
             weightHistory.push({ date: today, weight: newWeight });
         }
         kittens[kittenIndex].weightHistory = weightHistory;
@@ -898,7 +932,6 @@ async function saveKittenRecord(event) {
     
     const recordId = document.getElementById('kittenRecordId').value;
     const type = document.getElementById('kittenRecordType').value;
-    const title = document.getElementById('kittenRecordTitleInput').value;
     const content = document.getElementById('kittenRecordContent').value;
     const time = document.getElementById('kittenRecordTime').value || new Date().toISOString();
     
@@ -909,6 +942,15 @@ async function saveKittenRecord(event) {
         showToast('请选择至少一只幼崽');
         return;
     }
+    
+    // 根据类型和内容自动生成标题
+    const typeNames = {
+        growth: '成长记录',
+        nursing: '吃奶记录',
+        health: '健康记录',
+        other: '其他记录'
+    };
+    const title = content ? content.substring(0, 15) + (content.length > 15 ? '...' : '') : typeNames[type] || '记录';
     
     // 处理照片
     let photo = null;
@@ -1058,7 +1100,6 @@ function editKittenRecord(recordId) {
     // 填充表单
     document.getElementById('kittenRecordId').value = record.id;
     document.getElementById('kittenRecordType').value = record.type;
-    document.getElementById('kittenRecordTitleInput').value = record.title;
     document.getElementById('kittenRecordContent').value = record.content || '';
     document.getElementById('kittenRecordTime').value = record.time;
     
@@ -1400,10 +1441,109 @@ function renderMedicineLogs() {
             </div>
             ${log.note ? `<div class="mt-2 text-sm text-gray-500">${log.note}</div>` : ''}
             ${log.photo ? `<img src="${log.photo}" class="mt-2 rounded-xl w-full max-h-48 object-cover" onclick="viewImage('${log.photo}')">` : ''}
+            <div class="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-100">
+                <button onclick="editMedicine('${log.id}')" class="text-xs text-gray-500 hover:text-primary flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-primary/5 transition-colors">
+                    <i data-lucide="edit-2" class="w-3 h-3"></i>
+                    编辑
+                </button>
+                <button onclick="deleteMedicine('${log.id}')" class="text-xs text-gray-500 hover:text-red-500 flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
+                    <i data-lucide="trash-2" class="w-3 h-3"></i>
+                    删除
+                </button>
+            </div>
         </div>
     `).join('');
     
     lucide.createIcons();
+}
+
+// 编辑喂药记录
+function editMedicine(logId) {
+    const logs = getMedicineLogs();
+    const log = logs.find(l => l.id === logId);
+    if (!log) return;
+    
+    // 填充表单
+    document.getElementById('medicineName').value = log.name;
+    document.getElementById('medicineDose').value = log.dose;
+    document.getElementById('medicineUnit').value = log.unit;
+    document.getElementById('medicineTime').value = log.time;
+    document.getElementById('medicineNote').value = log.note || '';
+    
+    // 隐藏照片预览（编辑时不重新上传照片）
+    document.getElementById('medicinePhotoPreview').classList.add('hidden');
+    
+    // 修改表单提交行为
+    const form = document.getElementById('medicineForm');
+    form.onsubmit = (e) => saveMedicineEdit(e, logId);
+    
+    // 修改弹窗标题
+    document.querySelector('#modal-addMedicine h3').textContent = '编辑喂药记录';
+    
+    showModal('modal-addMedicine');
+}
+
+// 保存编辑后的喂药记录
+async function saveMedicineEdit(event, logId) {
+    event.preventDefault();
+    
+    const name = document.getElementById('medicineName').value;
+    const dose = parseFloat(document.getElementById('medicineDose').value);
+    const unit = document.getElementById('medicineUnit').value;
+    const time = document.getElementById('medicineTime').value || new Date().toISOString();
+    const note = document.getElementById('medicineNote').value;
+    
+    // 处理照片（如果有新上传的照片）
+    let photo = null;
+    const photoInput = document.getElementById('medicinePhoto');
+    if (photoInput.files && photoInput.files[0]) {
+        photo = await compressImage(photoInput.files[0]);
+    }
+    
+    const logs = getMedicineLogs();
+    const logIndex = logs.findIndex(l => l.id === logId);
+    
+    if (logIndex === -1) {
+        showToast('记录不存在');
+        return;
+    }
+    
+    // 更新记录
+    logs[logIndex] = {
+        ...logs[logIndex],
+        name: name,
+        dose: dose,
+        unit: unit,
+        time: time,
+        note: note,
+        photo: photo || logs[logIndex].photo // 如果没有新照片，保留原照片
+    };
+    
+    saveMedicineLogs(logs);
+    
+    // 恢复表单默认行为
+    const form = document.getElementById('medicineForm');
+    form.onsubmit = saveMedicine;
+    
+    // 恢复弹窗标题
+    document.querySelector('#modal-addMedicine h3').textContent = '记录喂药';
+    
+    closeModal('modal-addMedicine');
+    showToast('记录已更新');
+    renderMedicineLogs();
+    refreshDashboard();
+}
+
+// 删除喂药记录
+function deleteMedicine(logId) {
+    if (!confirm('确定要删除这条喂药记录吗？')) return;
+    
+    const logs = getMedicineLogs().filter(l => l.id !== logId);
+    saveMedicineLogs(logs);
+    
+    renderMedicineLogs();
+    showToast('记录已删除');
+    refreshDashboard();
 }
 
 // ==================== 吃奶记录 ====================
@@ -1635,6 +1775,170 @@ function renderNursingLogs() {
     lucide.createIcons();
 }
 
+// 编辑吃奶记录
+function editNursing(logId) {
+    const logs = getNursingLogs();
+    const log = logs.find(l => l.id === logId);
+    if (!log) return;
+    
+    // 填充时间
+    document.getElementById('nursingStartTime').value = log.startTime;
+    document.getElementById('nursingEndTime').value = log.endTime;
+    
+    // 渲染幼崽选择
+    renderKittensCheckboxes();
+    
+    // 勾选对应的幼崽
+    log.kittenIds.forEach(kittenId => {
+        const checkbox = document.querySelector(`.kitten-checkbox[value="${kittenId}"]`);
+        if (checkbox) checkbox.checked = true;
+    });
+    
+    // 处理备注内容
+    let noteMode = 'stats';
+    let statsNote = '';
+    let perKittenNotes = {};
+    
+    if (log.note) {
+        try {
+            const noteData = JSON.parse(log.note);
+            if (noteData.mode === 'perKitten' && noteData.kittens) {
+                noteMode = 'perKitten';
+                perKittenNotes = noteData.kittens;
+            } else {
+                statsNote = log.note;
+            }
+        } catch (e) {
+            statsNote = log.note;
+        }
+    }
+    
+    // 渲染按只模式输入框
+    renderPerKittenInputs();
+    
+    // 设置备注内容
+    if (noteMode === 'stats') {
+        document.getElementById('nursingStatsNote').value = statsNote;
+    } else {
+        // 填充按只模式的备注
+        const settings = getSettings();
+        const defaultNames = settings.defaultKittenNames || ['老大', '老二', '老三', '老四'];
+        defaultNames.forEach((name, index) => {
+            const input = document.getElementById(`perKittenNote${index}`);
+            if (input && perKittenNotes[name]) {
+                input.value = perKittenNotes[name];
+            }
+        });
+    }
+    
+    // 切换到对应模式
+    switchNursingMode(noteMode);
+    currentNursingMode = noteMode;
+    
+    // 隐藏照片预览
+    document.getElementById('nursingPhotoPreview').classList.add('hidden');
+    
+    // 修改表单提交行为
+    const form = document.getElementById('nursingForm');
+    form.onsubmit = (e) => saveNursingEdit(e, logId);
+    
+    // 修改弹窗标题
+    document.querySelector('#modal-addNursing h3').textContent = '编辑吃奶记录';
+    
+    showModal('modal-addNursing');
+}
+
+// 保存编辑后的吃奶记录
+async function saveNursingEdit(event, logId) {
+    event.preventDefault();
+    
+    const startTime = document.getElementById('nursingStartTime').value;
+    const endTime = document.getElementById('nursingEndTime').value;
+    
+    // 根据模式获取备注内容
+    let note = '';
+    if (currentNursingMode === 'stats') {
+        note = document.getElementById('nursingStatsNote').value;
+    } else {
+        // 按只模式，保存为对象格式
+        const settings = getSettings();
+        const defaultNames = settings.defaultKittenNames || ['老大', '老二', '老三', '老四'];
+        const perKittenNotes = {};
+        
+        defaultNames.forEach((name, index) => {
+            const input = document.getElementById(`perKittenNote${index}`);
+            if (input && input.value) {
+                perKittenNotes[name] = input.value;
+            }
+        });
+        
+        note = JSON.stringify({
+            mode: 'perKitten',
+            kittens: perKittenNotes
+        });
+    }
+    
+    // 获取选中的幼崽
+    const selectedKittens = Array.from(document.querySelectorAll('.kitten-checkbox:checked')).map(cb => parseInt(cb.value));
+    
+    if (selectedKittens.length === 0) {
+        showToast('请选择参与的幼崽');
+        return;
+    }
+    
+    // 处理照片（如果有新上传的照片）
+    let photo = null;
+    const photoInput = document.getElementById('nursingPhoto');
+    if (photoInput.files && photoInput.files[0]) {
+        photo = await compressImage(photoInput.files[0]);
+    }
+    
+    const logs = getNursingLogs();
+    const logIndex = logs.findIndex(l => l.id === logId);
+    
+    if (logIndex === -1) {
+        showToast('记录不存在');
+        return;
+    }
+    
+    // 更新记录
+    logs[logIndex] = {
+        ...logs[logIndex],
+        startTime: startTime,
+        endTime: endTime,
+        duration: Math.floor((new Date(endTime) - new Date(startTime)) / 60000),
+        kittenIds: selectedKittens,
+        note: note,
+        photo: photo || logs[logIndex].photo // 如果没有新照片，保留原照片
+    };
+    
+    saveNursingLogs(logs);
+    
+    // 恢复表单默认行为
+    const form = document.getElementById('nursingForm');
+    form.onsubmit = saveNursing;
+    
+    // 恢复弹窗标题
+    document.querySelector('#modal-addNursing h3').textContent = '记录吃奶';
+    
+    closeModal('modal-addNursing');
+    showToast('记录已更新');
+    renderNursingLogs();
+    refreshDashboard();
+}
+
+// 删除吃奶记录
+function deleteNursing(logId) {
+    if (!confirm('确定要删除这条吃奶记录吗？')) return;
+    
+    const logs = getNursingLogs().filter(l => l.id !== logId);
+    saveNursingLogs(logs);
+    
+    renderNursingLogs();
+    showToast('记录已删除');
+    refreshDashboard();
+}
+
 // ==================== 照片管理 ====================
 
 let currentPhotoFilter = 'all';
@@ -1706,10 +2010,36 @@ function renderPhotos() {
     }
     
     container.innerHTML = photos.map(photo => `
-        <div class="photo-item aspect-square rounded-xl overflow-hidden cursor-pointer" onclick="viewImage('${photo.url}')">
-            <img src="${photo.url}" alt="${photo.desc || '照片'}" class="w-full h-full object-cover lazy-image" loading="lazy">
+        <div class="bg-white rounded-xl shadow-card overflow-hidden">
+            <div class="aspect-square overflow-hidden cursor-pointer" onclick="viewImage('${photo.url}')">
+                <img src="${photo.url}" alt="${photo.desc || '照片'}" class="w-full h-full object-cover lazy-image" loading="lazy">
+            </div>
+            <div class="p-2">
+                <div class="text-xs text-gray-600 line-clamp-2 mb-1">${photo.desc || '暂无备注'}</div>
+                <button onclick="editPhotoDesc('${photo.id}')" class="text-xs text-primary hover:text-primary/80 flex items-center gap-1">
+                    <i data-lucide="edit-2" class="w-3 h-3"></i>
+                    编辑备注
+                </button>
+            </div>
         </div>
     `).join('');
+    
+    lucide.createIcons();
+}
+
+// 编辑照片备注
+function editPhotoDesc(photoId) {
+    const photos = getPhotos();
+    const photo = photos.find(p => p.id === photoId);
+    if (!photo) return;
+    
+    const newDesc = prompt('请输入照片备注：', photo.desc || '');
+    if (newDesc === null) return;
+    
+    photo.desc = newDesc;
+    savePhotos(photos);
+    renderPhotos();
+    showToast('备注已更新');
 }
 
 function viewImage(url) {
@@ -2574,6 +2904,7 @@ function renderTimeline() {
     
     getFeedingLogs().slice(0, 5).forEach(log => {
         allRecords.push({
+            id: log.id,
             time: log.time,
             type: 'feeding',
             title: `喂食：${log.type}`,
@@ -2585,6 +2916,7 @@ function renderTimeline() {
     
     getMedicineLogs().slice(0, 5).forEach(log => {
         allRecords.push({
+            id: log.id,
             time: log.time,
             type: 'medicine',
             title: `喂药：${log.name}`,
@@ -2596,6 +2928,7 @@ function renderTimeline() {
     
     getNursingLogs().slice(0, 5).forEach(log => {
         allRecords.push({
+            id: log.id,
             time: log.startTime,
             type: 'nursing',
             title: '吃奶',
@@ -2623,12 +2956,44 @@ function renderTimeline() {
                 <div class="flex-1 min-w-0">
                     <div class="text-sm font-medium text-gray-800">${record.title}</div>
                     <div class="text-xs text-gray-400">${formatTimeAgo(record.time)} · ${record.desc}</div>
+                    <div class="flex gap-2 mt-2">
+                        <button onclick="editTimelineRecord('${record.type}', '${record.id}')" class="text-xs text-gray-400 hover:text-primary flex items-center gap-1">
+                            <i data-lucide="edit-2" class="w-3 h-3"></i>
+                            编辑
+                        </button>
+                        <button onclick="deleteTimelineRecord('${record.type}', '${record.id}')" class="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                            删除
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     `).join('');
     
     lucide.createIcons();
+}
+
+// 编辑时间轴记录
+function editTimelineRecord(type, id) {
+    if (type === 'feeding') {
+        editFeed(id);
+    } else if (type === 'medicine') {
+        editMedicine(id);
+    } else if (type === 'nursing') {
+        editNursing(id);
+    }
+}
+
+// 删除时间轴记录
+function deleteTimelineRecord(type, id) {
+    if (type === 'feeding') {
+        deleteFeed(id);
+    } else if (type === 'medicine') {
+        deleteMedicine(id);
+    } else if (type === 'nursing') {
+        deleteNursing(id);
+    }
 }
 
 // ==================== 刷新所有数据 ====================

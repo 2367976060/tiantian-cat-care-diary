@@ -46,7 +46,7 @@
 </head>
 <body class="bg-cream min-h-screen pb-20 transition-colors duration-300">
     <!-- 顶部标题栏 -->
-    <header class="bg-gradient-to-r from-primary to-secondary text-white p-4 rounded-b-3xl shadow-soft sticky top-0 z-40">
+    <header id="topHeader" class="bg-gradient-to-r from-primary to-secondary text-white p-4 rounded-b-3xl shadow-soft sticky top-0 z-40">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
@@ -960,9 +960,15 @@
                         <label class="text-sm text-gray-600 mb-1 block">毛色</label>
                         <input type="text" id="editKittenColor" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="毛色">
                     </div>
-                    <div>
-                        <label class="text-sm text-gray-600 mb-1 block">出生日期</label>
-                        <input type="date" id="editKittenBirthDate" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm text-gray-600 mb-1 block">出生日期</label>
+                            <input type="date" id="editKittenBirthDate" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors">
+                        </div>
+                        <div>
+                            <label class="text-sm text-gray-600 mb-1 block">出生体重(g)</label>
+                            <input type="number" id="editKittenBirthWeight" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="出生体重">
+                        </div>
                     </div>
                     <div>
                         <label class="text-sm text-gray-600 mb-1 block">备注</label>
@@ -970,6 +976,10 @@
                     </div>
                 </div>
                 <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="deleteCurrentKitten()" class="py-3 px-4 border border-red-200 rounded-xl text-red-500 font-medium active:bg-red-50">
+                        <i data-lucide="trash-2" class="w-4 h-4 inline mr-1"></i>
+                        删除
+                    </button>
                     <button type="button" onclick="closeModal('modal-editKitten')" class="flex-1 py-3 border border-gray-200 rounded-xl text-gray-600 font-medium active:bg-gray-50">取消</button>
                     <button type="submit" class="flex-1 py-3 bg-primary text-white rounded-xl font-medium active:scale-95 transition-transform">保存</button>
                 </div>
@@ -1015,10 +1025,6 @@
                             <option value="health">健康记录</option>
                             <option value="other">其他记录</option>
                         </select>
-                    </div>
-                    <div>
-                        <label class="text-sm text-gray-600 mb-1 block">记录标题</label>
-                        <input type="text" id="kittenRecordTitleInput" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="请输入记录标题" required>
                     </div>
                     <div>
                         <label class="text-sm text-gray-600 mb-1 block">记录内容</label>
