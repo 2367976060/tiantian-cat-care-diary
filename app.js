@@ -681,17 +681,21 @@ function toggleAllKittens() {
 // ==================== 幼崽记录 ====================
 
 function showAddKittenRecord() {
-    const now = new Date();
-    document.getElementById('kittenRecordTime').value = formatDate(now, 'YYYY-MM-DDTHH:mm');
-    
     // 重置表单
     document.getElementById('kittenRecordForm').reset();
     document.getElementById('kittenRecordId').value = '';
     document.getElementById('kittenRecordPhotoPreview').classList.add('hidden');
     document.getElementById('kittenRecordTitle').textContent = '新增成长记录';
     
-    // 渲染幼崽选择
-    renderKittenRecordSelect();
+    // 设置默认日期为今天
+    const now = new Date();
+    document.getElementById('kittenRecordTime').value = formatDate(now, 'YYYY-MM-DDTHH:mm');
+    
+    // 设置默认记录类型为成长记录
+    document.getElementById('kittenRecordType').value = 'growth';
+    
+    // 渲染幼崽选择（默认全选）
+    renderKittenRecordSelect(true);
     
     // 恢复默认提交行为
     document.getElementById('kittenRecordForm').onsubmit = saveKittenRecord;
@@ -699,15 +703,16 @@ function showAddKittenRecord() {
     showModal('modal-addKittenRecord');
 }
 
-function renderKittenRecordSelect() {
+function renderKittenRecordSelect(selectAll = false) {
     const kittens = getKittens();
     const container = document.getElementById('kittenRecordKittens');
     
     container.innerHTML = kittens.map(kitten => {
         const avatarColor = kitten.gender === '公' ? 'from-primary to-primary-light' : 'from-secondary to-pink-300';
+        const checked = selectAll ? 'checked' : '';
         return `
             <label class="cursor-pointer">
-                <input type="checkbox" name="kittenRecord" value="${kitten.id}" class="hidden peer kitten-record-checkbox">
+                <input type="checkbox" name="kittenRecord" value="${kitten.id}" class="hidden peer kitten-record-checkbox" ${checked}>
                 <div class="flex items-center gap-2 p-2 border border-gray-200 rounded-xl text-sm peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
                     <div class="w-6 h-6 bg-gradient-to-br ${avatarColor} rounded-full flex items-center justify-center text-white text-xs font-bold">
                         ${kitten.name.charAt(0)}

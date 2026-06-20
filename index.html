@@ -159,10 +159,16 @@
 
         <!-- 幼崽管理 -->
         <section id="page-kittens" class="page hidden">
-            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <i data-lucide="baby" class="w-5 h-5 text-primary"></i>
-                幼崽管理
-            </h2>
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="baby" class="w-5 h-5 text-primary"></i>
+                    幼崽管理
+                </h2>
+                <button onclick="showAddKitten()" class="bg-primary text-white px-4 py-2 rounded-full text-sm font-medium active:scale-95 transition-transform shadow-soft flex items-center gap-1">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    新增
+                </button>
+            </div>
             <!-- 幼崽列表（竖列卡片） -->
             <div id="kittensList" class="space-y-3">
                 <!-- 幼崽卡片由JS生成 -->
