@@ -13,7 +13,8 @@ const STORAGE_KEYS = {
     NURSING_LOGS: 'tiantian_nursing_logs',
     PHOTOS: 'tiantian_photos',
     REMINDERS: 'tiantian_reminders',
-    SETTINGS: 'tiantian_settings'
+    SETTINGS: 'tiantian_settings',
+    KITTEN_RECORDS: 'tiantian_kitten_records'
 };
 
 // 默认数据
@@ -26,11 +27,10 @@ const DEFAULT_DATA = {
         avatar: '甜'
     },
     kittens: [
-        { id: 1, name: '奶油崽', gender: '公', color: '奶油色', birthDate: '2024-06-15', weight: 120, weightHistory: [{ date: '2024-06-15', weight: 100 }], note: '' },
-        { id: 2, name: '灰灰', gender: '母', color: '灰色', birthDate: '2024-06-15', weight: 115, weightHistory: [{ date: '2024-06-15', weight: 95 }], note: '' },
-        { id: 3, name: '团子', gender: '公', color: '海豹色', birthDate: '2024-06-15', weight: 130, weightHistory: [{ date: '2024-06-15', weight: 110 }], note: '' },
-        { id: 4, name: '奶糖', gender: '母', color: '奶牛色', birthDate: '2024-06-15', weight: 110, weightHistory: [{ date: '2024-06-15', weight: 90 }], note: '' },
-        { id: 5, name: '小白', gender: '公', color: '白色', birthDate: '2024-06-15', weight: 125, weightHistory: [{ date: '2024-06-15', weight: 105 }], note: '' }
+        { id: 1, name: '老大', gender: '公', color: '奶油色', birthDate: '2026-06-19', weight: 120, weightHistory: [{ date: '2026-06-19', weight: 100 }], note: '' },
+        { id: 2, name: '老二', gender: '母', color: '灰色', birthDate: '2026-06-19', weight: 115, weightHistory: [{ date: '2026-06-19', weight: 95 }], note: '' },
+        { id: 3, name: '老三', gender: '公', color: '海豹色', birthDate: '2026-06-19', weight: 130, weightHistory: [{ date: '2026-06-19', weight: 110 }], note: '' },
+        { id: 4, name: '老四', gender: '母', color: '奶牛色', birthDate: '2026-06-19', weight: 110, weightHistory: [{ date: '2026-06-19', weight: 90 }], note: '' }
     ],
     feedingLogs: [],
     medicineLogs: [],
@@ -39,8 +39,9 @@ const DEFAULT_DATA = {
     reminders: [],
     settings: {
         darkMode: false,
-        defaultKittenNames: ['老大', '老二', '老三', '老四', '老五']
-    }
+        defaultKittenNames: ['老大', '老二', '老三', '老四']
+    },
+    kittenRecords: []
 };
 
 // 数据操作函数
@@ -128,6 +129,14 @@ function getSettings() {
 
 function saveSettings(settings) {
     return setData(STORAGE_KEYS.SETTINGS, settings);
+}
+
+function getKittenRecords() {
+    return getData(STORAGE_KEYS.KITTEN_RECORDS, DEFAULT_DATA.kittenRecords);
+}
+
+function saveKittenRecords(records) {
+    return setData(STORAGE_KEYS.KITTEN_RECORDS, records);
 }
 
 // ==================== 工具函数 ====================
@@ -260,6 +269,7 @@ function showPage(pageName) {
         renderPhotos();
     } else if (pageName === 'kittens') {
         renderKittens();
+        renderKittenRecords();
     } else if (pageName === 'feeding') {
         renderFeedingLogs();
     } else if (pageName === 'medicine') {
@@ -336,18 +346,79 @@ function renderKittens() {
     
     container.innerHTML = kittens.map(kitten => {
         const avatarColor = kitten.gender === '公' ? 'from-primary to-primary-light' : 'from-secondary to-pink-300';
+        const birthWeight = kitten.weightHistory && kitten.weightHistory.length > 0 
+            ? kitten.weightHistory[0].weight 
+            : kitten.weight;
         
         return `
-            <div class="kitten-avatar-item flex flex-col items-center cursor-pointer flex-shrink-0" onclick="showKittenDetail(${kitten.id})">
-                <div class="w-16 h-16 bg-gradient-to-br ${avatarColor} rounded-full flex items-center justify-center text-white text-xl font-bold shadow-soft mb-2">
-                    ${kitten.name.charAt(0)}
+            <div class="bg-white rounded-2xl shadow-card p-4 mb-3">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-gradient-to-br ${avatarColor} rounded-full flex items-center justify-center text-white text-lg font-bold shadow-soft">
+                            ${kitten.name.charAt(0)}
+                        </div>
+                        <div>
+                            <div class="font-bold text-gray-800">${kitten.name}</div>
+                            <div class="text-xs text-gray-400">出生 ${birthWeight}g · ${kitten.gender}</div>
+                        </div>
+                    </div>
+                    <button onclick="showKittenDetail(${kitten.id})" class="text-gray-400 hover:text-primary transition-colors">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </button>
                 </div>
-                <span class="text-sm font-medium text-gray-700">${kitten.name}</span>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-primary/5 rounded-xl p-3 text-center cursor-pointer" onclick="editKittenWeight(${kitten.id})">
+                        <div class="text-lg font-bold text-primary">${kitten.weight}g</div>
+                        <div class="text-xs text-gray-500">当前体重（点击修改）</div>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl p-3">
+                        <div class="text-xs text-gray-500 mb-1">备注</div>
+                        <div class="text-sm text-gray-700 line-clamp-2">${kitten.note || '暂无备注'}</div>
+                    </div>
+                </div>
             </div>
         `;
     }).join('');
     
     lucide.createIcons();
+}
+
+// 快速修改幼崽体重
+function editKittenWeight(kittenId) {
+    const kittens = getKittens();
+    const kitten = kittens.find(k => k.id === kittenId);
+    if (!kitten) return;
+    
+    const newWeight = prompt('请输入新的体重（g）：', kitten.weight);
+    if (newWeight === null) return;
+    
+    const weight = parseFloat(newWeight);
+    if (isNaN(weight) || weight <= 0) {
+        showToast('请输入有效的体重');
+        return;
+    }
+    
+    const oldWeight = kitten.weight;
+    kitten.weight = weight;
+    
+    // 如果体重变化，添加到体重历史
+    if (oldWeight !== weight) {
+        const today = formatDate(new Date(), 'YYYY-MM-DD');
+        const weightHistory = kitten.weightHistory || [];
+        const lastRecord = weightHistory[weightHistory.length - 1];
+        
+        if (lastRecord && lastRecord.date === today) {
+            lastRecord.weight = weight;
+        } else {
+            weightHistory.push({ date: today, weight: weight });
+        }
+        kitten.weightHistory = weightHistory;
+    }
+    
+    saveKittens(kittens);
+    renderKittens();
+    showToast('体重已更新');
 }
 
 let currentKittenId = null;
@@ -607,6 +678,245 @@ function toggleAllKittens() {
     });
 }
 
+// ==================== 幼崽记录 ====================
+
+function showAddKittenRecord() {
+    const now = new Date();
+    document.getElementById('kittenRecordTime').value = formatDate(now, 'YYYY-MM-DDTHH:mm');
+    
+    // 重置表单
+    document.getElementById('kittenRecordForm').reset();
+    document.getElementById('kittenRecordId').value = '';
+    document.getElementById('kittenRecordPhotoPreview').classList.add('hidden');
+    document.getElementById('kittenRecordTitle').textContent = '新增成长记录';
+    
+    // 渲染幼崽选择
+    renderKittenRecordSelect();
+    
+    // 恢复默认提交行为
+    document.getElementById('kittenRecordForm').onsubmit = saveKittenRecord;
+    
+    showModal('modal-addKittenRecord');
+}
+
+function renderKittenRecordSelect() {
+    const kittens = getKittens();
+    const container = document.getElementById('kittenRecordKittens');
+    
+    container.innerHTML = kittens.map(kitten => {
+        const avatarColor = kitten.gender === '公' ? 'from-primary to-primary-light' : 'from-secondary to-pink-300';
+        return `
+            <label class="cursor-pointer">
+                <input type="checkbox" name="kittenRecord" value="${kitten.id}" class="hidden peer kitten-record-checkbox">
+                <div class="flex items-center gap-2 p-2 border border-gray-200 rounded-xl text-sm peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
+                    <div class="w-6 h-6 bg-gradient-to-br ${avatarColor} rounded-full flex items-center justify-center text-white text-xs font-bold">
+                        ${kitten.name.charAt(0)}
+                    </div>
+                    <span class="text-gray-700">${kitten.name}</span>
+                </div>
+            </label>
+        `;
+    }).join('');
+}
+
+async function saveKittenRecord(event) {
+    event.preventDefault();
+    
+    const recordId = document.getElementById('kittenRecordId').value;
+    const type = document.getElementById('kittenRecordType').value;
+    const title = document.getElementById('kittenRecordTitleInput').value;
+    const content = document.getElementById('kittenRecordContent').value;
+    const time = document.getElementById('kittenRecordTime').value || new Date().toISOString();
+    
+    // 获取选中的幼崽
+    const selectedKittens = Array.from(document.querySelectorAll('.kitten-record-checkbox:checked')).map(cb => parseInt(cb.value));
+    
+    if (selectedKittens.length === 0) {
+        showToast('请选择至少一只幼崽');
+        return;
+    }
+    
+    // 处理照片
+    let photo = null;
+    const photoInput = document.getElementById('kittenRecordPhoto');
+    if (photoInput.files && photoInput.files[0]) {
+        photo = await compressImage(photoInput.files[0]);
+    }
+    
+    const records = getKittenRecords();
+    
+    if (recordId) {
+        // 编辑模式
+        const recordIndex = records.findIndex(r => r.id === recordId);
+        if (recordIndex === -1) {
+            showToast('记录不存在');
+            return;
+        }
+        
+        records[recordIndex] = {
+            ...records[recordIndex],
+            kittenIds: selectedKittens,
+            type: type,
+            title: title,
+            content: content,
+            time: time,
+            photo: photo || records[recordIndex].photo
+        };
+        
+        showToast('记录已更新');
+    } else {
+        // 新增模式
+        const record = {
+            id: generateId(),
+            kittenIds: selectedKittens,
+            type: type,
+            title: title,
+            content: content,
+            time: time,
+            photo: photo,
+            createdAt: new Date().toISOString()
+        };
+        
+        records.unshift(record);
+        
+        // 如果有照片，也添加到照片库
+        if (photo) {
+            const photos = getPhotos();
+            photos.unshift({
+                id: generateId(),
+                url: photo,
+                category: 'kittens',
+                desc: title,
+                createdAt: time
+            });
+            savePhotos(photos);
+        }
+        
+        showToast('记录已添加');
+    }
+    
+    saveKittenRecords(records);
+    closeModal('modal-addKittenRecord');
+    renderKittenRecords();
+}
+
+function renderKittenRecords() {
+    const records = getKittenRecords();
+    const kittens = getKittens();
+    const container = document.getElementById('kittenRecordsList');
+    
+    if (records.length === 0) {
+        container.innerHTML = '<p class="text-center text-gray-400 py-6">暂无成长记录</p>';
+        return;
+    }
+    
+    const typeIcons = {
+        growth: 'trending-up',
+        nursing: 'heart',
+        health: 'activity',
+        other: 'file-text'
+    };
+    
+    const typeColors = {
+        growth: 'primary',
+        nursing: 'amber',
+        health: 'green',
+        other: 'gray'
+    };
+    
+    const typeNames = {
+        growth: '成长',
+        nursing: '吃奶',
+        health: '健康',
+        other: '其他'
+    };
+    
+    container.innerHTML = records.map(record => {
+        const kittenNames = record.kittenIds.map(id => {
+            const kitten = kittens.find(k => k.id === id);
+            return kitten ? kitten.name : '未知';
+        }).join('、');
+        
+        const icon = typeIcons[record.type] || 'file-text';
+        const color = typeColors[record.type] || 'gray';
+        const typeName = typeNames[record.type] || '记录';
+        
+        return `
+            <div class="bg-white rounded-2xl shadow-card p-4 mb-3">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-${color}/10 rounded-full flex items-center justify-center">
+                            <i data-lucide="${icon}" class="w-5 h-5 text-${color}-500"></i>
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-800">${record.title}</div>
+                            <div class="text-xs text-gray-400">${formatTimeAgo(record.time)} · ${typeName}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2 text-xs text-gray-500">
+                    涉及：${kittenNames}
+                </div>
+                ${record.content ? `<div class="mt-2 text-sm text-gray-600 line-clamp-2">${record.content}</div>` : ''}
+                ${record.photo ? `<img src="${record.photo}" class="mt-2 rounded-xl w-full max-h-48 object-cover" onclick="viewImage('${record.photo}')">` : ''}
+                <div class="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-100">
+                    <button onclick="editKittenRecord('${record.id}')" class="text-xs text-gray-500 hover:text-primary flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-primary/5 transition-colors">
+                        <i data-lucide="edit-2" class="w-3 h-3"></i>
+                        编辑
+                    </button>
+                    <button onclick="deleteKittenRecord('${record.id}')" class="text-xs text-gray-500 hover:text-red-500 flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        删除
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    lucide.createIcons();
+}
+
+function editKittenRecord(recordId) {
+    const records = getKittenRecords();
+    const record = records.find(r => r.id === recordId);
+    if (!record) return;
+    
+    // 填充表单
+    document.getElementById('kittenRecordId').value = record.id;
+    document.getElementById('kittenRecordType').value = record.type;
+    document.getElementById('kittenRecordTitleInput').value = record.title;
+    document.getElementById('kittenRecordContent').value = record.content || '';
+    document.getElementById('kittenRecordTime').value = record.time;
+    
+    // 渲染幼崽选择并勾选
+    renderKittenRecordSelect();
+    record.kittenIds.forEach(kittenId => {
+        const checkbox = document.querySelector(`.kitten-record-checkbox[value="${kittenId}"]`);
+        if (checkbox) checkbox.checked = true;
+    });
+    
+    // 隐藏照片预览（编辑时不重新上传照片）
+    document.getElementById('kittenRecordPhotoPreview').classList.add('hidden');
+    
+    // 修改表单提交行为
+    document.getElementById('kittenRecordForm').onsubmit = saveKittenRecord;
+    
+    // 修改弹窗标题
+    document.getElementById('kittenRecordTitle').textContent = '编辑成长记录';
+    
+    showModal('modal-addKittenRecord');
+}
+
+function deleteKittenRecord(recordId) {
+    if (!confirm('确定要删除这条记录吗？')) return;
+    
+    const records = getKittenRecords().filter(r => r.id !== recordId);
+    saveKittenRecords(records);
+    
+    renderKittenRecords();
+    showToast('记录已删除');
+}
+
 // ==================== 喂食记录 ====================
 
 function showAddFeed() {
@@ -714,10 +1024,122 @@ function renderFeedingLogs() {
             </div>
             ${log.note ? `<div class="mt-2 text-sm text-gray-500">${log.note}</div>` : ''}
             ${log.photo ? `<img src="${log.photo}" class="mt-2 rounded-xl w-full max-h-48 object-cover" onclick="viewImage('${log.photo}')">` : ''}
+            <div class="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-100">
+                <button onclick="editFeed('${log.id}')" class="text-xs text-gray-500 hover:text-primary flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-primary/5 transition-colors">
+                    <i data-lucide="edit-2" class="w-3 h-3"></i>
+                    编辑
+                </button>
+                <button onclick="deleteFeed('${log.id}')" class="text-xs text-gray-500 hover:text-red-500 flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
+                    <i data-lucide="trash-2" class="w-3 h-3"></i>
+                    删除
+                </button>
+            </div>
         </div>
     `).join('');
     
     lucide.createIcons();
+}
+
+// 编辑喂食记录
+function editFeed(logId) {
+    const logs = getFeedingLogs();
+    const log = logs.find(l => l.id === logId);
+    if (!log) return;
+    
+    // 填充表单
+    document.getElementById('feedAmount').value = log.amount;
+    document.getElementById('feedTime').value = log.time;
+    document.getElementById('feedNote').value = log.note || '';
+    
+    // 设置食物类型
+    const foodTypes = ['幼猫粮', '猫罐头', '鸡胸肉', '羊奶粉'];
+    const typeRadio = document.querySelector(`input[name="feedType"][value="${log.type}"]`);
+    if (typeRadio) {
+        typeRadio.checked = true;
+        document.getElementById('customFeedType').classList.add('hidden');
+    } else {
+        document.querySelector('input[name="feedType"][value="custom"]').checked = true;
+        document.getElementById('customFeedType').value = log.type;
+        document.getElementById('customFeedType').classList.remove('hidden');
+    }
+    
+    // 隐藏照片预览（编辑时不重新上传照片）
+    document.getElementById('feedPhotoPreview').classList.add('hidden');
+    
+    // 修改表单提交行为
+    const form = document.getElementById('feedForm');
+    form.onsubmit = (e) => saveFeedEdit(e, logId);
+    
+    // 修改弹窗标题
+    document.querySelector('#modal-addFeed h3').textContent = '编辑喂食记录';
+    
+    showModal('modal-addFeed');
+}
+
+// 保存编辑后的喂食记录
+async function saveFeedEdit(event, logId) {
+    event.preventDefault();
+    
+    const feedTypeRadio = document.querySelector('input[name="feedType"]:checked');
+    let feedType = feedTypeRadio.value;
+    if (feedType === 'custom') {
+        feedType = document.getElementById('customFeedType').value || '自定义';
+    }
+    
+    const amount = parseFloat(document.getElementById('feedAmount').value);
+    const time = document.getElementById('feedTime').value || new Date().toISOString();
+    const note = document.getElementById('feedNote').value;
+    
+    // 处理照片（如果有新上传的照片）
+    let photo = null;
+    const photoInput = document.getElementById('feedPhoto');
+    if (photoInput.files && photoInput.files[0]) {
+        photo = await compressImage(photoInput.files[0]);
+    }
+    
+    const logs = getFeedingLogs();
+    const logIndex = logs.findIndex(l => l.id === logId);
+    
+    if (logIndex === -1) {
+        showToast('记录不存在');
+        return;
+    }
+    
+    // 更新记录
+    logs[logIndex] = {
+        ...logs[logIndex],
+        type: feedType,
+        amount: amount,
+        time: time,
+        note: note,
+        photo: photo || logs[logIndex].photo // 如果没有新照片，保留原照片
+    };
+    
+    saveFeedingLogs(logs);
+    
+    // 恢复表单默认行为
+    const form = document.getElementById('feedForm');
+    form.onsubmit = saveFeed;
+    
+    // 恢复弹窗标题
+    document.querySelector('#modal-addFeed h3').textContent = '记录喂食';
+    
+    closeModal('modal-addFeed');
+    showToast('记录已更新');
+    renderFeedingLogs();
+    refreshDashboard();
+}
+
+// 删除喂食记录
+function deleteFeed(logId) {
+    if (!confirm('确定要删除这条喂食记录吗？')) return;
+    
+    const logs = getFeedingLogs().filter(l => l.id !== logId);
+    saveFeedingLogs(logs);
+    
+    renderFeedingLogs();
+    showToast('记录已删除');
+    refreshDashboard();
 }
 
 // ==================== 喂药记录 ====================
@@ -867,7 +1289,7 @@ function switchNursingMode(mode) {
 // 渲染按只模式的输入框
 function renderPerKittenInputs() {
     const settings = getSettings();
-    const defaultNames = settings.defaultKittenNames || ['老大', '老二', '老三', '老四', '老五'];
+    const defaultNames = settings.defaultKittenNames || ['老大', '老二', '老三', '老四'];
     const container = document.getElementById('perKittenInputs');
     
     container.innerHTML = defaultNames.map((name, index) => `
@@ -911,7 +1333,7 @@ async function saveNursing(event) {
     } else {
         // 按只模式，保存为对象格式
         const settings = getSettings();
-        const defaultNames = settings.defaultKittenNames || ['老大', '老二', '老三', '老四', '老五'];
+        const defaultNames = settings.defaultKittenNames || ['老大', '老二', '老三', '老四'];
         const perKittenNotes = {};
         
         defaultNames.forEach((name, index) => {
@@ -1197,6 +1619,10 @@ function getRecordDates() {
         dates.add(formatDate(photo.createdAt, 'YYYY-MM-DD'));
     });
     
+    getKittenRecords().forEach(record => {
+        dates.add(formatDate(record.time, 'YYYY-MM-DD'));
+    });
+    
     return dates;
 }
 
@@ -1270,6 +1696,39 @@ function renderDayRecords(dateStr) {
                 icon: 'image',
                 color: 'green',
                 photo: photo.url
+            });
+        }
+    });
+    
+    getKittenRecords().forEach(record => {
+        if (formatDate(record.time, 'YYYY-MM-DD') === dateStr) {
+            const typeNames = {
+                growth: '成长',
+                nursing: '吃奶',
+                health: '健康',
+                other: '其他'
+            };
+            const typeColors = {
+                growth: 'primary',
+                nursing: 'amber',
+                health: 'green',
+                other: 'gray'
+            };
+            const typeIcons = {
+                growth: 'trending-up',
+                nursing: 'heart',
+                health: 'activity',
+                other: 'file-text'
+            };
+            
+            records.push({
+                type: 'kittenRecord',
+                time: record.time,
+                title: `${typeNames[record.type] || '记录'}：${record.title}`,
+                desc: record.content ? record.content.substring(0, 20) + (record.content.length > 20 ? '...' : '') : '',
+                icon: typeIcons[record.type] || 'file-text',
+                color: typeColors[record.type] || 'gray',
+                photo: record.photo
             });
         }
     });
@@ -1809,6 +2268,7 @@ function exportData() {
         photos: getPhotos(),
         reminders: getReminders(),
         settings: getSettings(),
+        kittenRecords: getKittenRecords(),
         exportTime: new Date().toISOString()
     };
     
@@ -1841,6 +2301,7 @@ function importData(event) {
             if (data.photos) savePhotos(data.photos);
             if (data.reminders) saveReminders(data.reminders);
             if (data.settings) saveSettings(data.settings);
+            if (data.kittenRecords) saveKittenRecords(data.kittenRecords);
             
             showToast('数据导入成功');
             refreshAll();
@@ -1856,12 +2317,12 @@ function saveDefaultNames() {
     const settings = getSettings();
     const names = [];
     
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 4; i++) {
         const input = document.getElementById(`defaultName${i}`);
         if (input && input.value) {
             names.push(input.value);
         } else {
-            names.push(`老${['一', '二', '三', '四', '五'][i - 1]}`);
+            names.push(`老${['一', '二', '三', '四'][i - 1]}`);
         }
     }
     
@@ -1873,12 +2334,12 @@ function saveDefaultNames() {
 // 加载默认幼崽名称到设置页面
 function loadDefaultNames() {
     const settings = getSettings();
-    const names = settings.defaultKittenNames || ['老大', '老二', '老三', '老四', '老五'];
+    const names = settings.defaultKittenNames || ['老大', '老二', '老三', '老四'];
     
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 4; i++) {
         const input = document.getElementById(`defaultName${i}`);
         if (input) {
-            input.value = names[i - 1] || `老${['一', '二', '三', '四', '五'][i - 1]}`;
+            input.value = names[i - 1] || `老${['一', '二', '三', '四'][i - 1]}`;
         }
     }
 }
@@ -2003,6 +2464,7 @@ function refreshAll() {
     renderTodayStats();
     renderTimeline();
     renderKittens();
+    renderKittenRecords();
     renderFeedingLogs();
     renderMedicineLogs();
     renderNursingLogs();
