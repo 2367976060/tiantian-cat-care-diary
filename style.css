@@ -1,0 +1,416 @@
+/* 甜甜育儿记录本 - 自定义样式 */
+
+/* 基础样式重置 */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+}
+
+/* 页面切换动画 */
+.page {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 弹窗动画 */
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-slideUp {
+    animation: slideUp 0.3s ease-out;
+}
+
+.animate-slideDown {
+    animation: slideDown 0.3s ease-out;
+}
+
+/* 底部导航激活状态 */
+.nav-btn {
+    color: #9CA3AF;
+    transition: all 0.2s ease;
+}
+
+.nav-btn.active {
+    color: #A78BFA;
+}
+
+.nav-btn.active i {
+    transform: scale(1.1);
+}
+
+/* 卡片悬停效果（桌面端） */
+@media (hover: hover) {
+    .shadow-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(167, 139, 250, 0.18);
+    }
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(167, 139, 250, 0.3);
+    border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(167, 139, 250, 0.5);
+}
+
+/* 隐藏滚动条但保留功能 */
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* 照片瀑布流效果 */
+.photo-item {
+    break-inside: avoid;
+    margin-bottom: 8px;
+}
+
+/* 时间轴样式 */
+.timeline-item {
+    position: relative;
+    padding-left: 20px;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #A78BFA;
+}
+
+.timeline-item::after {
+    content: '';
+    position: absolute;
+    left: 9px;
+    top: 14px;
+    width: 2px;
+    height: calc(100% - 8px);
+    background: linear-gradient(to bottom, rgba(167, 139, 250, 0.3), transparent);
+}
+
+.timeline-item:last-child::after {
+    display: none;
+}
+
+/* 深色模式 */
+.dark body {
+    background-color: #1F2937;
+    color: #F3F4F6;
+}
+
+.dark .bg-white {
+    background-color: #374151 !important;
+}
+
+.dark .bg-cream {
+    background-color: #111827 !important;
+}
+
+.dark .text-gray-800 {
+    color: #F3F4F6 !important;
+}
+
+.dark .text-gray-600 {
+    color: #D1D5DB !important;
+}
+
+.dark .text-gray-500 {
+    color: #9CA3AF !important;
+}
+
+.dark .text-gray-400 {
+    color: #6B7280 !important;
+}
+
+.dark .border-gray-200 {
+    border-color: #4B5563 !important;
+}
+
+.dark .border-gray-100 {
+    border-color: #374151 !important;
+}
+
+.dark .bg-gray-50 {
+    background-color: #1F2937 !important;
+}
+
+.dark .bg-gray-100 {
+    background-color: #374151 !important;
+}
+
+.dark .bg-primary\/5 {
+    background-color: rgba(167, 139, 250, 0.1) !important;
+}
+
+.dark .bg-secondary\/10 {
+    background-color: rgba(249, 168, 212, 0.1) !important;
+}
+
+.dark .bg-amber-50 {
+    background-color: rgba(251, 191, 36, 0.1) !important;
+}
+
+.dark .bg-green-50 {
+    background-color: rgba(34, 197, 94, 0.1) !important;
+}
+
+.dark .bg-primary\/10 {
+    background-color: rgba(167, 139, 250, 0.15) !important;
+}
+
+.dark .bg-secondary\/10 {
+    background-color: rgba(249, 168, 212, 0.15) !important;
+}
+
+.dark .bg-green-100 {
+    background-color: rgba(34, 197, 94, 0.2) !important;
+}
+
+.dark .bg-blue-100 {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+.dark .bg-red-100 {
+    background-color: rgba(239, 68, 68, 0.2) !important;
+}
+
+.dark .bg-amber-100 {
+    background-color: rgba(251, 191, 36, 0.2) !important;
+}
+
+.dark nav {
+    background-color: #1F2937 !important;
+    border-color: #374151 !important;
+}
+
+.dark .modal-content {
+    background-color: #374151 !important;
+}
+
+.dark input,
+.dark textarea,
+.dark select {
+    background-color: #1F2937 !important;
+    color: #F3F4F6 !important;
+    border-color: #4B5563 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+    color: #6B7280;
+}
+
+/* 图片懒加载占位 */
+.lazy-image {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* 按钮点击反馈 */
+button:active {
+    transform: scale(0.98);
+}
+
+/* 日历日期样式 */
+.calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.calendar-day:hover {
+    background-color: rgba(167, 139, 250, 0.1);
+}
+
+.calendar-day.today {
+    background-color: #A78BFA;
+    color: white;
+    font-weight: 600;
+}
+
+.calendar-day.selected {
+    background-color: rgba(167, 139, 250, 0.2);
+    color: #8B5CF6;
+    font-weight: 600;
+}
+
+.calendar-day.has-record::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: #F9A8D4;
+}
+
+.calendar-day.today.has-record::after {
+    background-color: white;
+}
+
+.calendar-day.other-month {
+    color: #D1D5DB;
+}
+
+.dark .calendar-day.other-month {
+    color: #4B5563;
+}
+
+/* 照片分类筛选按钮 */
+.photo-filter-btn {
+    transition: all 0.2s ease;
+}
+
+.photo-filter-btn.active {
+    font-weight: 500;
+}
+
+/* Toast 动画 */
+#toast {
+    animation: toastIn 0.3s ease-out;
+}
+
+@keyframes toastIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -20px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+/* 图片查看器动画 */
+#imageViewer {
+    animation: fadeIn 0.2s ease-out;
+}
+
+#imageViewer img {
+    animation: zoomIn 0.3s ease-out;
+}
+
+@keyframes zoomIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 幼崽卡片 */
+.kitten-card {
+    transition: all 0.2s ease;
+}
+
+.kitten-card:active {
+    transform: scale(0.98);
+}
+
+/* 渐变文字 */
+.gradient-text {
+    background: linear-gradient(135deg, #A78BFA, #F9A8D4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* 毛玻璃效果 */
+.glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.dark .glass {
+    background: rgba(31, 41, 55, 0.7);
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    body {
+        padding-bottom: calc(env(safe-area-inset-bottom) + 80px);
+    }
+    
+    nav {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}
+
+/* 移动端优化 */
+@media (max-width: 640px) {
+    .modal-content {
+        border-radius: 24px 24px 0 0;
+    }
+}

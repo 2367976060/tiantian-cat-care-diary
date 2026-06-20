@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#A78BFA">
+    <title>甜甜育儿记录本</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="style.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#A78BFA',
+                        secondary: '#F9A8D4',
+                        cream: '#FFF7ED',
+                        'primary-light': '#C4B5FD',
+                        'primary-dark': '#8B5CF6',
+                    },
+                    borderRadius: {
+                        '2xl': '24px',
+                        '3xl': '32px',
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px rgba(167, 139, 250, 0.15)',
+                        'card': '0 8px 32px rgba(167, 139, 250, 0.12)',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-cream min-h-screen pb-20 transition-colors duration-300">
+    <!-- 顶部标题栏 -->
+    <header class="bg-gradient-to-r from-primary to-secondary text-white p-4 rounded-b-3xl shadow-soft sticky top-0 z-40">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <i data-lucide="cat" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold">甜甜育儿记录本</h1>
+                    <p class="text-xs text-white/80" id="currentDate">加载中...</p>
+                </div>
+            </div>
+            <button onclick="showPage('settings')" class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm active:scale-95 transition-transform">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- 主内容区域 -->
+    <main class="px-4 py-4 max-w-lg mx-auto">
+        
+        <!-- 首页 Dashboard -->
+        <section id="page-home" class="page active">
+            <!-- 母猫信息卡 -->
+            <div class="bg-white rounded-2xl shadow-card p-4 mb-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-soft" onclick="editMotherCat()">
+                        <span id="motherAvatar">甜</span>
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-bold text-gray-800" id="motherName">甜甜</h2>
+                        <div class="flex flex-wrap gap-2 mt-1">
+                            <span class="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full" id="motherBreed">布偶猫</span>
+                            <span class="text-xs bg-secondary/10 text-pink-500 px-2 py-0.5 rounded-full" id="motherAge">2岁</span>
+                            <span class="text-xs bg-cream text-amber-600 px-2 py-0.5 rounded-full" id="motherWeight">4.5kg</span>
+                        </div>
+                    </div>
+                    <button onclick="editMotherCat()" class="text-gray-400 hover:text-primary transition-colors">
+                        <i data-lucide="edit-2" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 今日概览 -->
+            <div class="bg-white rounded-2xl shadow-card p-4 mb-4">
+                <h3 class="text-sm font-semibold text-gray-600 mb-3 flex items-center gap-2">
+                    <i data-lucide="calendar" class="w-4 h-4 text-primary"></i>
+                    今日概览
+                </h3>
+                <div class="grid grid-cols-4 gap-2">
+                    <div class="text-center p-2 bg-primary/5 rounded-xl">
+                        <div class="text-xl font-bold text-primary" id="todayFeedCount">0</div>
+                        <div class="text-xs text-gray-500">喂食</div>
+                    </div>
+                    <div class="text-center p-2 bg-secondary/10 rounded-xl">
+                        <div class="text-xl font-bold text-pink-500" id="todayMedicineCount">0</div>
+                        <div class="text-xs text-gray-500">喂药</div>
+                    </div>
+                    <div class="text-center p-2 bg-amber-50 rounded-xl">
+                        <div class="text-xl font-bold text-amber-500" id="todayNursingCount">0</div>
+                        <div class="text-xs text-gray-500">吃奶</div>
+                    </div>
+                    <div class="text-center p-2 bg-green-50 rounded-xl">
+                        <div class="text-xl font-bold text-green-500" id="todayPhotoCount">0</div>
+                        <div class="text-xs text-gray-500">照片</div>
+                    </div>
+                </div>
+                <div class="mt-3 text-xs text-gray-400 text-center">
+                    最近记录：<span id="lastRecordTime">暂无记录</span>
+                </div>
+            </div>
+
+            <!-- 快捷按钮 -->
+            <div class="grid grid-cols-4 gap-3 mb-4">
+                <button onclick="showAddFeed()" class="bg-white rounded-2xl shadow-soft p-3 flex flex-col items-center gap-2 active:scale-95 transition-transform">
+                    <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                        <i data-lucide="utensils" class="w-6 h-6 text-primary"></i>
+                    </div>
+                    <span class="text-xs text-gray-600">喂食</span>
+                </button>
+                <button onclick="showAddMedicine()" class="bg-white rounded-2xl shadow-soft p-3 flex flex-col items-center gap-2 active:scale-95 transition-transform">
+                    <div class="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center">
+                        <i data-lucide="pill" class="w-6 h-6 text-pink-500"></i>
+                    </div>
+                    <span class="text-xs text-gray-600">喂药</span>
+                </button>
+                <button onclick="showAddNursing()" class="bg-white rounded-2xl shadow-soft p-3 flex flex-col items-center gap-2 active:scale-95 transition-transform">
+                    <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                        <i data-lucide="heart" class="w-6 h-6 text-amber-500"></i>
+                    </div>
+                    <span class="text-xs text-gray-600">吃奶</span>
+                </button>
+                <button onclick="showAddPhoto()" class="bg-white rounded-2xl shadow-soft p-3 flex flex-col items-center gap-2 active:scale-95 transition-transform">
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <i data-lucide="camera" class="w-6 h-6 text-green-500"></i>
+                    </div>
+                    <span class="text-xs text-gray-600">照片</span>
+                </button>
+            </div>
+
+            <!-- 时间轴 -->
+            <div class="bg-white rounded-2xl shadow-card p-4">
+                <h3 class="text-sm font-semibold text-gray-600 mb-3 flex items-center gap-2">
+                    <i data-lucide="clock" class="w-4 h-4 text-primary"></i>
+                    最近记录
+                </h3>
+                <div id="timeline" class="space-y-3">
+                    <!-- 时间轴内容由JS生成 -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 幼崽管理 -->
+        <section id="page-kittens" class="page hidden">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <i data-lucide="baby" class="w-5 h-5 text-primary"></i>
+                幼崽管理
+            </h2>
+            <div id="kittensList" class="space-y-3">
+                <!-- 幼崽列表由JS生成 -->
+            </div>
+        </section>
+
+        <!-- 喂食记录 -->
+        <section id="page-feeding" class="page hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="utensils" class="w-5 h-5 text-primary"></i>
+                    喂食记录
+                </h2>
+                <button onclick="showAddFeed()" class="bg-primary text-white px-4 py-2 rounded-full text-sm font-medium active:scale-95 transition-transform shadow-soft">
+                    + 添加
+                </button>
+            </div>
+            <div id="feedingList" class="space-y-3">
+                <!-- 喂食记录由JS生成 -->
+            </div>
+        </section>
+
+        <!-- 喂药记录 -->
+        <section id="page-medicine" class="page hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="pill" class="w-5 h-5 text-pink-500"></i>
+                    喂药记录
+                </h2>
+                <button onclick="showAddMedicine()" class="bg-secondary text-white px-4 py-2 rounded-full text-sm font-medium active:scale-95 transition-transform shadow-soft">
+                    + 添加
+                </button>
+            </div>
+            <div id="medicineList" class="space-y-3">
+                <!-- 喂药记录由JS生成 -->
+            </div>
+        </section>
+
+        <!-- 吃奶记录 -->
+        <section id="page-nursing" class="page hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="heart" class="w-5 h-5 text-amber-500"></i>
+                    吃奶记录
+                </h2>
+                <button onclick="showAddNursing()" class="bg-amber-400 text-white px-4 py-2 rounded-full text-sm font-medium active:scale-95 transition-transform shadow-soft">
+                    + 添加
+                </button>
+            </div>
+            <div id="nursingList" class="space-y-3">
+                <!-- 吃奶记录由JS生成 -->
+            </div>
+        </section>
+
+        <!-- 照片管理 -->
+        <section id="page-photos" class="page hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="image" class="w-5 h-5 text-green-500"></i>
+                    照片墙
+                </h2>
+                <button onclick="showAddPhoto()" class="bg-green-500 text-white px-4 py-2 rounded-full text-sm font-medium active:scale-95 transition-transform shadow-soft">
+                    + 上传
+                </button>
+            </div>
+            
+            <!-- 分类标签 -->
+            <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+                <button onclick="filterPhotos('all')" class="photo-filter-btn active px-4 py-1.5 rounded-full text-sm whitespace-nowrap bg-primary text-white" data-filter="all">全部</button>
+                <button onclick="filterPhotos('mother')" class="photo-filter-btn px-4 py-1.5 rounded-full text-sm whitespace-nowrap bg-gray-100 text-gray-600" data-filter="mother">甜甜</button>
+                <button onclick="filterPhotos('feeding')" class="photo-filter-btn px-4 py-1.5 rounded-full text-sm whitespace-nowrap bg-gray-100 text-gray-600" data-filter="feeding">喂食</button>
+                <button onclick="filterPhotos('medicine')" class="photo-filter-btn px-4 py-1.5 rounded-full text-sm whitespace-nowrap bg-gray-100 text-gray-600" data-filter="medicine">喂药</button>
+                <button onclick="filterPhotos('kittens')" class="photo-filter-btn px-4 py-1.5 rounded-full text-sm whitespace-nowrap bg-gray-100 text-gray-600" data-filter="kittens">幼崽成长</button>
+            </div>
+            
+            <div id="photosGrid" class="grid grid-cols-3 gap-2">
+                <!-- 照片由JS生成 -->
+            </div>
+        </section>
+
+        <!-- 日历 -->
+        <section id="page-calendar" class="page hidden">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <i data-lucide="calendar-days" class="w-5 h-5 text-primary"></i>
+                日历记录
+            </h2>
+            
+            <!-- 日历头部 -->
+            <div class="bg-white rounded-2xl shadow-card p-4 mb-4">
+                <div class="flex items-center justify-between mb-4">
+                    <button onclick="prevMonth()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+                        <i data-lucide="chevron-left" class="w-5 h-5 text-gray-600"></i>
+                    </button>
+                    <h3 class="font-semibold text-gray-800" id="calendarMonth">2024年1月</h3>
+                    <button onclick="nextMonth()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+                        <i data-lucide="chevron-right" class="w-5 h-5 text-gray-600"></i>
+                    </button>
+                </div>
+                
+                <!-- 星期标题 -->
+                <div class="grid grid-cols-7 gap-1 mb-2">
+                    <div class="text-center text-xs text-gray-400 py-1">日</div>
+                    <div class="text-center text-xs text-gray-400 py-1">一</div>
+                    <div class="text-center text-xs text-gray-400 py-1">二</div>
+                    <div class="text-center text-xs text-gray-400 py-1">三</div>
+                    <div class="text-center text-xs text-gray-400 py-1">四</div>
+                    <div class="text-center text-xs text-gray-400 py-1">五</div>
+                    <div class="text-center text-xs text-gray-400 py-1">六</div>
+                </div>
+                
+                <!-- 日期格子 -->
+                <div id="calendarGrid" class="grid grid-cols-7 gap-1">
+                    <!-- 日期由JS生成 -->
+                </div>
+            </div>
+            
+            <!-- 当天记录 -->
+            <div class="bg-white rounded-2xl shadow-card p-4">
+                <h3 class="text-sm font-semibold text-gray-600 mb-3" id="selectedDateTitle">选择日期查看记录</h3>
+                <div id="dayRecords" class="space-y-2">
+                    <p class="text-sm text-gray-400 text-center py-4">点击日期查看当天记录</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 统计分析 -->
+        <section id="page-stats" class="page hidden">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <i data-lucide="bar-chart-3" class="w-5 h-5 text-primary"></i>
+                统计分析
+            </h2>
+            
+            <!-- 喂食趋势 -->
+            <div class="bg-white rounded-2xl shadow-card p-4 mb-4">
+                <h3 class="text-sm font-semibold text-gray-600 mb-3">喂食趋势（近7天）</h3>
+                <div class="h-48">
+                    <canvas id="feedingChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 喂药统计 -->
+            <div class="bg-white rounded-2xl shadow-card p-4 mb-4">
+                <h3 class="text-sm font-semibold text-gray-600 mb-3">喂药统计</h3>
+                <div class="h-48">
+                    <canvas id="medicineChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 吃奶频率 -->
+            <div class="bg-white rounded-2xl shadow-card p-4 mb-4">
+                <h3 class="text-sm font-semibold text-gray-600 mb-3">吃奶频率（近7天）</h3>
+                <div class="h-48">
+                    <canvas id="nursingChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 体重增长 -->
+            <div class="bg-white rounded-2xl shadow-card p-4">
+                <h3 class="text-sm font-semibold text-gray-600 mb-3">幼崽体重增长</h3>
+                <div class="h-48">
+                    <canvas id="weightChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- 提醒 -->
+        <section id="page-reminders" class="page hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="bell" class="w-5 h-5 text-amber-500"></i>
+                    提醒管理
+                </h2>
+                <button onclick="showAddReminder()" class="bg-amber-400 text-white px-4 py-2 rounded-full text-sm font-medium active:scale-95 transition-transform shadow-soft">
+                    + 添加
+                </button>
+            </div>
+            
+            <div id="remindersList" class="space-y-3">
+                <!-- 提醒列表由JS生成 -->
+            </div>
+        </section>
+
+        <!-- 设置 -->
+        <section id="page-settings" class="page hidden">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <i data-lucide="settings" class="w-5 h-5 text-primary"></i>
+                设置
+            </h2>
+            
+            <div class="bg-white rounded-2xl shadow-card overflow-hidden">
+                <!-- 深色模式 -->
+                <div class="p-4 flex items-center justify-between border-b border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                            <i data-lucide="moon" class="w-5 h-5 text-primary"></i>
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-800">深色模式</div>
+                            <div class="text-xs text-gray-400">切换深色/浅色主题</div>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="darkModeToggle" class="sr-only peer" onchange="toggleDarkMode()">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                </div>
+                
+                <!-- 通知权限 -->
+                <div class="p-4 flex items-center justify-between border-b border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center">
+                            <i data-lucide="bell-ring" class="w-5 h-5 text-pink-500"></i>
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-800">通知权限</div>
+                            <div class="text-xs text-gray-400" id="notificationStatus">未授权</div>
+                        </div>
+                    </div>
+                    <button onclick="requestNotification()" class="text-primary text-sm font-medium">授权</button>
+                </div>
+                
+                <!-- 数据导出 -->
+                <div class="p-4 flex items-center justify-between border-b border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <i data-lucide="download" class="w-5 h-5 text-green-500"></i>
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-800">导出数据</div>
+                            <div class="text-xs text-gray-400">备份所有数据为JSON</div>
+                        </div>
+                    </div>
+                    <button onclick="exportData()" class="text-green-500 text-sm font-medium">导出</button>
+                </div>
+                
+                <!-- 数据导入 -->
+                <div class="p-4 flex items-center justify-between border-b border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i data-lucide="upload" class="w-5 h-5 text-blue-500"></i>
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-800">导入数据</div>
+                            <div class="text-xs text-gray-400">从JSON备份恢复</div>
+                        </div>
+                    </div>
+                    <label class="text-blue-500 text-sm font-medium cursor-pointer">
+                        导入
+                        <input type="file" accept=".json" class="hidden" onchange="importData(event)">
+                    </label>
+                </div>
+                
+                <!-- 清除数据 -->
+                <div class="p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                            <i data-lucide="trash-2" class="w-5 h-5 text-red-500"></i>
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-800">清除数据</div>
+                            <div class="text-xs text-gray-400">删除所有记录数据</div>
+                        </div>
+                    </div>
+                    <button onclick="clearAllData()" class="text-red-500 text-sm font-medium">清除</button>
+                </div>
+            </div>
+            
+            <!-- 关于 -->
+            <div class="mt-4 text-center">
+                <p class="text-xs text-gray-400">甜甜育儿记录本 v1.0</p>
+                <p class="text-xs text-gray-300 mt-1">用爱记录每一刻成长 💜</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- 底部导航栏 -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-2 py-2 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <div class="max-w-lg mx-auto grid grid-cols-5 gap-1">
+            <button onclick="showPage('home')" class="nav-btn active flex flex-col items-center gap-1 py-2" data-page="home">
+                <i data-lucide="home" class="w-5 h-5"></i>
+                <span class="text-[10px]">首页</span>
+            </button>
+            <button onclick="showPage('kittens')" class="nav-btn flex flex-col items-center gap-1 py-2" data-page="kittens">
+                <i data-lucide="baby" class="w-5 h-5"></i>
+                <span class="text-[10px]">幼崽</span>
+            </button>
+            <button onclick="showPage('photos')" class="nav-btn flex flex-col items-center gap-1 py-2" data-page="photos">
+                <i data-lucide="image" class="w-5 h-5"></i>
+                <span class="text-[10px]">照片</span>
+            </button>
+            <button onclick="showPage('calendar')" class="nav-btn flex flex-col items-center gap-1 py-2" data-page="calendar">
+                <i data-lucide="calendar" class="w-5 h-5"></i>
+                <span class="text-[10px]">日历</span>
+            </button>
+            <button onclick="showPage('stats')" class="nav-btn flex flex-col items-center gap-1 py-2" data-page="stats">
+                <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                <span class="text-[10px]">统计</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 弹窗：编辑母猫信息 -->
+    <div id="modal-editMother" class="modal hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div class="modal-overlay absolute inset-0 bg-black/50" onclick="closeModal('modal-editMother')"></div>
+        <div class="modal-content bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg p-6 relative z-10 animate-slideUp">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">编辑甜甜信息</h3>
+            <form id="motherForm" onsubmit="saveMotherCat(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">名字</label>
+                        <input type="text" id="inputMotherName" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="请输入名字">
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">品种</label>
+                        <input type="text" id="inputMotherBreed" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="请输入品种">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm text-gray-600 mb-1 block">年龄</label>
+                            <input type="text" id="inputMotherAge" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="如：2岁">
+                        </div>
+                        <div>
+                            <label class="text-sm text-gray-600 mb-1 block">体重(kg)</label>
+                            <input type="number" step="0.1" id="inputMotherWeight" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="请输入体重">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="closeModal('modal-editMother')" class="flex-1 py-3 border border-gray-200 rounded-xl text-gray-600 font-medium active:bg-gray-50">取消</button>
+                    <button type="submit" class="flex-1 py-3 bg-primary text-white rounded-xl font-medium active:scale-95 transition-transform">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 弹窗：添加喂食记录 -->
+    <div id="modal-addFeed" class="modal hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div class="modal-overlay absolute inset-0 bg-black/50" onclick="closeModal('modal-addFeed')"></div>
+        <div class="modal-content bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg p-6 relative z-10 animate-slideUp max-h-[90vh] overflow-y-auto">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">记录喂食</h3>
+            <form id="feedForm" onsubmit="saveFeed(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm text-gray-600 mb-2 block">食物类型</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="feedType" value="幼猫粮" class="hidden peer" checked>
+                                <div class="text-center py-2 border border-gray-200 rounded-xl text-sm peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition-all">幼猫粮</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="feedType" value="猫罐头" class="hidden peer">
+                                <div class="text-center py-2 border border-gray-200 rounded-xl text-sm peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition-all">猫罐头</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="feedType" value="鸡胸肉" class="hidden peer">
+                                <div class="text-center py-2 border border-gray-200 rounded-xl text-sm peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition-all">鸡胸肉</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="feedType" value="羊奶粉" class="hidden peer">
+                                <div class="text-center py-2 border border-gray-200 rounded-xl text-sm peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition-all">羊奶粉</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="feedType" value="custom" class="hidden peer">
+                                <div class="text-center py-2 border border-gray-200 rounded-xl text-sm peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition-all">自定义</div>
+                            </label>
+                        </div>
+                        <input type="text" id="customFeedType" class="hidden w-full mt-2 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-primary text-sm" placeholder="请输入自定义食物">
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">食用量 (g/ml)</label>
+                        <input type="number" id="feedAmount" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="请输入食用量" required>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">时间</label>
+                        <input type="datetime-local" id="feedTime" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors">
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">备注</label>
+                        <textarea id="feedNote" rows="2" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors resize-none" placeholder="添加备注..."></textarea>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-2 block">照片（可选）</label>
+                        <div class="flex items-center gap-3">
+                            <label class="w-16 h-16 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
+                                <i data-lucide="plus" class="w-6 h-6 text-gray-400"></i>
+                                <input type="file" accept="image/*" class="hidden" id="feedPhoto" onchange="previewPhoto(this, 'feedPhotoPreview')">
+                            </label>
+                            <div id="feedPhotoPreview" class="hidden w-16 h-16 rounded-xl overflow-hidden">
+                                <img src="" alt="预览" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="closeModal('modal-addFeed')" class="flex-1 py-3 border border-gray-200 rounded-xl text-gray-600 font-medium active:bg-gray-50">取消</button>
+                    <button type="submit" class="flex-1 py-3 bg-primary text-white rounded-xl font-medium active:scale-95 transition-transform">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 弹窗：添加喂药记录 -->
+    <div id="modal-addMedicine" class="modal hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div class="modal-overlay absolute inset-0 bg-black/50" onclick="closeModal('modal-addMedicine')"></div>
+        <div class="modal-content bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg p-6 relative z-10 animate-slideUp max-h-[90vh] overflow-y-auto">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">记录喂药</h3>
+            <form id="medicineForm" onsubmit="saveMedicine(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">药品名称</label>
+                        <input type="text" id="medicineName" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="请输入药品名称" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm text-gray-600 mb-1 block">剂量</label>
+                            <input type="number" step="0.1" id="medicineDose" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="剂量" required>
+                        </div>
+                        <div>
+                            <label class="text-sm text-gray-600 mb-1 block">单位</label>
+                            <select id="medicineUnit" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors bg-white">
+                                <option value="片">片</option>
+                                <option value="ml">ml</option>
+                                <option value="滴">滴</option>
+                                <option value="mg">mg</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">时间</label>
+                        <input type="datetime-local" id="medicineTime" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors">
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">备注</label>
+                        <textarea id="medicineNote" rows="2" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors resize-none" placeholder="添加备注..."></textarea>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-2 block">照片（可选）</label>
+                        <div class="flex items-center gap-3">
+                            <label class="w-16 h-16 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
+                                <i data-lucide="plus" class="w-6 h-6 text-gray-400"></i>
+                                <input type="file" accept="image/*" class="hidden" id="medicinePhoto" onchange="previewPhoto(this, 'medicinePhotoPreview')">
+                            </label>
+                            <div id="medicinePhotoPreview" class="hidden w-16 h-16 rounded-xl overflow-hidden">
+                                <img src="" alt="预览" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="closeModal('modal-addMedicine')" class="flex-1 py-3 border border-gray-200 rounded-xl text-gray-600 font-medium active:bg-gray-50">取消</button>
+                    <button type="submit" class="flex-1 py-3 bg-secondary text-white rounded-xl font-medium active:scale-95 transition-transform">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 弹窗：添加吃奶记录 -->
+    <div id="modal-addNursing" class="modal hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div class="modal-overlay absolute inset-0 bg-black/50" onclick="closeModal('modal-addNursing')"></div>
+        <div class="modal-content bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg p-6 relative z-10 animate-slideUp max-h-[90vh] overflow-y-auto">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">记录吃奶</h3>
+            <form id="nursingForm" onsubmit="saveNursing(event)">
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm text-gray-600 mb-1 block">开始时间</label>
+                            <input type="datetime-local" id="nursingStartTime" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors">
+                        </div>
+                        <div>
+                            <label class="text-sm text-gray-600 mb-1 block">结束时间</label>
+                            <input type="datetime-local" id="nursingEndTime" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors">
+                        </div>
+                    </div>
+                    <div class="text-center text-sm text-gray-500">
+                        时长：<span id="nursingDuration" class="font-medium text-amber-500">请选择时间</span>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-sm text-gray-600">参与幼崽</label>
+                            <label class="text-xs text-primary cursor-pointer">
+                                <input type="checkbox" id="selectAllKittens" onchange="toggleAllKittens()" class="mr-1">
+                                全选
+                            </label>
+                        </div>
+                        <div id="kittensCheckboxes" class="grid grid-cols-2 gap-2">
+                            <!-- 幼崽多选由JS生成 -->
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">备注</label>
+                        <textarea id="nursingNote" rows="2" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors resize-none" placeholder="添加备注..."></textarea>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-2 block">照片（可选）</label>
+                        <div class="flex items-center gap-3">
+                            <label class="w-16 h-16 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
+                                <i data-lucide="plus" class="w-6 h-6 text-gray-400"></i>
+                                <input type="file" accept="image/*" class="hidden" id="nursingPhoto" onchange="previewPhoto(this, 'nursingPhotoPreview')">
+                            </label>
+                            <div id="nursingPhotoPreview" class="hidden w-16 h-16 rounded-xl overflow-hidden">
+                                <img src="" alt="预览" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="closeModal('modal-addNursing')" class="flex-1 py-3 border border-gray-200 rounded-xl text-gray-600 font-medium active:bg-gray-50">取消</button>
+                    <button type="submit" class="flex-1 py-3 bg-amber-400 text-white rounded-xl font-medium active:scale-95 transition-transform">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 弹窗：上传照片 -->
+    <div id="modal-addPhoto" class="modal hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div class="modal-overlay absolute inset-0 bg-black/50" onclick="closeModal('modal-addPhoto')"></div>
+        <div class="modal-content bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg p-6 relative z-10 animate-slideUp">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">上传照片</h3>
+            <form id="photoForm" onsubmit="savePhoto(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm text-gray-600 mb-2 block">选择照片</label>
+                        <div class="flex items-center gap-3">
+                            <label class="w-20 h-20 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
+                                <i data-lucide="upload" class="w-8 h-8 text-gray-400"></i>
+                                <input type="file" accept="image/*" class="hidden" id="photoFile" onchange="previewPhoto(this, 'photoPreview')" required>
+                            </label>
+                            <div id="photoPreview" class="hidden w-20 h-20 rounded-xl overflow-hidden">
+                                <img src="" alt="预览" class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-2 block">分类</label>
+                        <div class="grid grid-cols-4 gap-2">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="photoCategory" value="mother" class="hidden peer">
+                                <div class="text-center py-2 border border-gray-200 rounded-xl text-xs peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition-all">甜甜</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="photoCategory" value="feeding" class="hidden peer">
+                                <div class="text-center py-2 border border-gray-200 rounded-xl text-xs peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition-all">喂食</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="photoCategory" value="medicine" class="hidden peer">
+                                <div class="text-center py-2 border border-gray-200 rounded-xl text-xs peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition-all">喂药</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="photoCategory" value="kittens" class="hidden peer" checked>
+                                <div class="text-center py-2 border border-gray-200 rounded-xl text-xs peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition-all">幼崽</div>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">描述</label>
+                        <input type="text" id="photoDesc" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="添加描述...">
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="closeModal('modal-addPhoto')" class="flex-1 py-3 border border-gray-200 rounded-xl text-gray-600 font-medium active:bg-gray-50">取消</button>
+                    <button type="submit" class="flex-1 py-3 bg-green-500 text-white rounded-xl font-medium active:scale-95 transition-transform">上传</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 弹窗：添加提醒 -->
+    <div id="modal-addReminder" class="modal hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div class="modal-overlay absolute inset-0 bg-black/50" onclick="closeModal('modal-addReminder')"></div>
+        <div class="modal-content bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg p-6 relative z-10 animate-slideUp">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">添加提醒</h3>
+            <form id="reminderForm" onsubmit="saveReminder(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm text-gray-600 mb-2 block">提醒类型</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="reminderType" value="feeding" class="hidden peer" checked>
+                                <div class="text-center py-2 border border-gray-200 rounded-xl text-xs peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary transition-all">喂食</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="reminderType" value="medicine" class="hidden peer">
+                                <div class="text-center py-2 border border-gray-200 rounded-xl text-xs peer-checked:border-secondary peer-checked:bg-secondary/10 peer-checked:text-pink-500 transition-all">喂药</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="reminderType" value="nursing" class="hidden peer">
+                                <div class="text-center py-2 border border-gray-200 rounded-xl text-xs peer-checked:border-amber-400 peer-checked:bg-amber-50 peer-checked:text-amber-500 transition-all">吃奶</div>
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">提醒标题</label>
+                        <input type="text" id="reminderTitle" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="请输入提醒标题" required>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">时间</label>
+                        <input type="time" id="reminderTime" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" required>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600 mb-1 block">重复间隔（小时）</label>
+                        <input type="number" id="reminderInterval" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="0表示每天一次" value="0">
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button type="button" onclick="closeModal('modal-addReminder')" class="flex-1 py-3 border border-gray-200 rounded-xl text-gray-600 font-medium active:bg-gray-50">取消</button>
+                    <button type="submit" class="flex-1 py-3 bg-amber-400 text-white rounded-xl font-medium active:scale-95 transition-transform">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 弹窗：幼崽详情 -->
+    <div id="modal-kittenDetail" class="modal hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div class="modal-overlay absolute inset-0 bg-black/50" onclick="closeModal('modal-kittenDetail')"></div>
+        <div class="modal-content bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg p-6 relative z-10 animate-slideUp max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-gray-800" id="kittenDetailName">幼崽详情</h3>
+                <button onclick="closeModal('modal-kittenDetail')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+                    <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
+                </button>
+            </div>
+            
+            <!-- 幼崽信息 -->
+            <div class="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-4 mb-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white text-xl font-bold" id="kittenDetailAvatar">
+                        奶
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-gray-800" id="kittenDetailName2">奶油崽</span>
+                            <span class="text-xs px-2 py-0.5 bg-white/60 rounded-full" id="kittenDetailGender">公</span>
+                        </div>
+                        <div class="text-sm text-gray-500 mt-1" id="kittenDetailInfo">布偶 · 奶油色</div>
+                        <div class="text-xs text-gray-400 mt-1" id="kittenDetailBirth">出生于 2024-01-01</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 mt-4">
+                    <div class="bg-white/60 rounded-xl p-2 text-center">
+                        <div class="text-lg font-bold text-primary" id="kittenDetailWeight">100g</div>
+                        <div class="text-xs text-gray-500">当前体重</div>
+                    </div>
+                    <div class="bg-white/60 rounded-xl p-2 text-center">
+                        <div class="text-lg font-bold text-pink-500" id="kittenDetailDays">0天</div>
+                        <div class="text-xs text-gray-500">出生天数</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 体重曲线 -->
+            <div class="mb-4">
+                <h4 class="text-sm font-semibold text-gray-600 mb-2">体重曲线</h4>
+                <div class="h-40 bg-gray-50 rounded-xl p-2">
+                    <canvas id="kittenWeightChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 成长记录 -->
+            <div>
+                <h4 class="text-sm font-semibold text-gray-600 mb-2">成长记录</h4>
+                <div id="kittenGrowthRecords" class="space-y-2">
+                    <!-- 成长记录由JS生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图片查看器 -->
+    <div id="imageViewer" class="hidden fixed inset-0 z-[60] bg-black flex items-center justify-center" onclick="closeImageViewer()">
+        <button class="absolute top-4 right-4 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white" onclick="closeImageViewer()">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+        <img id="viewerImage" src="" alt="查看图片" class="max-w-full max-h-full object-contain">
+    </div>
+
+    <!-- 提醒弹窗 -->
+    <div id="reminderPopup" class="hidden fixed top-4 left-4 right-4 z-[70]">
+        <div class="bg-white rounded-2xl shadow-card p-4 max-w-lg mx-auto animate-slideDown">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="bell" class="w-5 h-5 text-amber-500"></i>
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-semibold text-gray-800" id="reminderPopupTitle">提醒</h4>
+                    <p class="text-sm text-gray-500 mt-1" id="reminderPopupMessage">该做什么了~</p>
+                </div>
+                <button onclick="closeReminderPopup()" class="text-gray-400">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="flex gap-2 mt-4">
+                <button onclick="closeReminderPopup()" class="flex-1 py-2 border border-gray-200 rounded-xl text-sm text-gray-600">稍后</button>
+                <button onclick="closeReminderPopup()" class="flex-1 py-2 bg-amber-400 text-white rounded-xl text-sm">知道了</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div id="toast" class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-[80]">
+        <div class="bg-gray-800 text-white px-4 py-2 rounded-full text-sm shadow-lg">
+            <span id="toastMessage">操作成功</span>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
