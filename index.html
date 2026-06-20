@@ -474,6 +474,50 @@
                     </div>
                 </div>
                 
+                <!-- 药品管理 -->
+                <div class="p-4 border-b border-gray-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="pill" class="w-5 h-5 text-pink-500"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-800">药品管理</div>
+                                <div class="text-xs text-gray-400">自定义药品和使用说明</div>
+                            </div>
+                        </div>
+                        <button onclick="showAddMedicineModal()" class="text-pink-500 text-sm font-medium flex items-center gap-1">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            新增
+                        </button>
+                    </div>
+                    <div id="medicineListSettings" class="space-y-2">
+                        <!-- 药品列表由JS生成 -->
+                    </div>
+                </div>
+                
+                <!-- 剂量选项管理 -->
+                <div class="p-4 border-b border-gray-100">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                                <i data-lucide="scale" class="w-5 h-5 text-amber-500"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-800">剂量选项</div>
+                                <div class="text-xs text-gray-400">自定义常用剂量选项</div>
+                            </div>
+                        </div>
+                        <button onclick="showAddDoseModal()" class="text-amber-500 text-sm font-medium flex items-center gap-1">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            新增
+                        </button>
+                    </div>
+                    <div id="doseListSettings" class="flex flex-wrap gap-2">
+                        <!-- 剂量选项由JS生成 -->
+                    </div>
+                </div>
+                
                 <!-- 清除数据 -->
                 <div class="p-4 flex items-center justify-between">
                     <div class="flex items-center gap-3">
@@ -632,12 +676,19 @@
                 <div class="space-y-4">
                     <div>
                         <label class="text-sm text-gray-600 mb-1 block">药品名称</label>
-                        <input type="text" id="medicineName" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="请输入药品名称" required>
+                        <select id="medicineName" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors bg-white" onchange="showMedicineInstruction()">
+                            <!-- 药品选项由JS生成 -->
+                        </select>
+                    </div>
+                    <div id="medicineInstruction" class="bg-pink-50 rounded-xl p-3 text-sm text-pink-600 hidden">
+                        <!-- 使用说明由JS生成 -->
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="text-sm text-gray-600 mb-1 block">剂量</label>
-                            <input type="number" step="0.1" id="medicineDose" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors" placeholder="剂量" required>
+                            <select id="medicineDose" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors bg-white">
+                                <!-- 剂量选项由JS生成 -->
+                            </select>
                         </div>
                         <div>
                             <label class="text-sm text-gray-600 mb-1 block">单位</label>
@@ -649,9 +700,15 @@
                             </select>
                         </div>
                     </div>
-                    <div>
-                        <label class="text-sm text-gray-600 mb-1 block">时间</label>
-                        <input type="datetime-local" id="medicineTime" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm text-gray-600 mb-1 block">日期</label>
+                            <input type="date" id="medicineDate" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors">
+                        </div>
+                        <div>
+                            <label class="text-sm text-gray-600 mb-1 block">时间</label>
+                            <input type="time" id="medicineTimeInput" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors">
+                        </div>
                     </div>
                     <div>
                         <label class="text-sm text-gray-600 mb-1 block">备注</label>
@@ -1030,9 +1087,15 @@
                         <label class="text-sm text-gray-600 mb-1 block">记录内容</label>
                         <textarea id="kittenRecordContent" rows="4" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors resize-none" placeholder="详细记录内容..."></textarea>
                     </div>
-                    <div>
-                        <label class="text-sm text-gray-600 mb-1 block">时间</label>
-                        <input type="datetime-local" id="kittenRecordTime" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-sm text-gray-600 mb-1 block">日期</label>
+                            <input type="date" id="kittenRecordDate" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors">
+                        </div>
+                        <div>
+                            <label class="text-sm text-gray-600 mb-1 block">时间</label>
+                            <input type="time" id="kittenRecordTimeInput" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary transition-colors">
+                        </div>
                     </div>
                     <div>
                         <label class="text-sm text-gray-600 mb-2 block">照片（可选）</label>

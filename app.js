@@ -39,7 +39,12 @@ const DEFAULT_DATA = {
     reminders: [],
     settings: {
         darkMode: false,
-        defaultKittenNames: ['老大', '老二', '老三', '老四']
+        defaultKittenNames: ['老大', '老二', '老三', '老四'],
+        medicines: [
+            { name: '止痛片', instruction: '一日一次，一次半片（已分半，纸袋包装）' },
+            { name: '消炎药', instruction: '一日两次，一次半片' }
+        ],
+        medicineDoses: ['0.5', '1', '2']
     },
     kittenRecords: []
 };
@@ -890,12 +895,16 @@ function showAddKittenRecord() {
     document.getElementById('kittenRecordPhotoPreview').classList.add('hidden');
     document.getElementById('kittenRecordTitle').textContent = '新增成长记录';
     
-    // 设置默认日期为今天
+    // 设置默认日期为今天，时间留空
     const now = new Date();
-    document.getElementById('kittenRecordTime').value = formatDate(now, 'YYYY-MM-DDTHH:mm');
+    document.getElementById('kittenRecordDate').value = formatDate(now, 'YYYY-MM-DD');
+    document.getElementById('kittenRecordTimeInput').value = '';
     
-    // 设置默认记录类型为成长记录
-    document.getElementById('kittenRecordType').value = 'growth';
+    // 设置默认记录类型为吃奶记录
+    document.getElementById('kittenRecordType').value = 'nursing';
+    
+    // 设置默认内容
+    document.getElementById('kittenRecordContent').value = '吃奶，排尿';
     
     // 渲染幼崽选择（默认全选）
     renderKittenRecordSelect(true);
@@ -933,7 +942,18 @@ async function saveKittenRecord(event) {
     const recordId = document.getElementById('kittenRecordId').value;
     const type = document.getElementById('kittenRecordType').value;
     const content = document.getElementById('kittenRecordContent').value;
-    const time = document.getElementById('kittenRecordTime').value || new Date().toISOString();
+    
+    // 从日期和时间输入框组合时间
+    const dateVal = document.getElementById('kittenRecordDate').value;
+    const timeVal = document.getElementById('kittenRecordTimeInput').value;
+    let time;
+    if (dateVal && timeVal) {
+        time = `${dateVal}T${timeVal}`;
+    } else if (dateVal) {
+        time = `${dateVal}T00:00`;
+    } else {
+        time = new Date().toISOString();
+    }
     
     // 获取选中的幼崽
     const selectedKittens = Array.from(document.querySelectorAll('.kitten-record-checkbox:checked')).map(cb => parseInt(cb.value));
@@ -1101,7 +1121,13 @@ function editKittenRecord(recordId) {
     document.getElementById('kittenRecordId').value = record.id;
     document.getElementById('kittenRecordType').value = record.type;
     document.getElementById('kittenRecordContent').value = record.content || '';
-    document.getElementById('kittenRecordTime').value = record.time;
+    
+    // 解析时间，分别填充日期和时间
+    if (record.time) {
+        const timeObj = new Date(record.time);
+        document.getElementById('kittenRecordDate').value = formatDate(timeObj, 'YYYY-MM-DD');
+        document.getElementById('kittenRecordTimeInput').value = formatDate(timeObj, 'HH:mm');
+    }
     
     // 渲染幼崽选择并勾选
     renderKittenRecordSelect();
@@ -1359,11 +1385,71 @@ function deleteFeed(logId) {
 
 // ==================== 喂药记录 ====================
 
+// 渲染药品选项
+function renderMedicineOptions() {
+    const settings = getSettings();
+    const medicines = settings.medicines || [];
+    const select = document.getElementById('medicineName');
+    
+    select.innerHTML = medicines.map(med => 
+        `<option value="${med.name}">${med.name}</option>`
+    ).join('');
+}
+
+// 渲染剂量选项
+function renderMedicineDoseOptions() {
+    const settings = getSettings();
+    const doses = settings.medicineDoses || [];
+    const select = document.getElementById('medicineDose');
+    
+    select.innerHTML = doses.map(dose => 
+        `<option value="${dose}">${dose}</option>`
+    ).join('');
+}
+
+// 显示药品使用说明
+function showMedicineInstruction() {
+    const medicineName = document.getElementById('medicineName').value;
+    const settings = getSettings();
+    const medicines = settings.medicines || [];
+    const medicine = medicines.find(m => m.name === medicineName);
+    const instructionDiv = document.getElementById('medicineInstruction');
+    
+    if (medicine && medicine.instruction) {
+        instructionDiv.textContent = medicine.instruction;
+        instructionDiv.classList.remove('hidden');
+    } else {
+        instructionDiv.classList.add('hidden');
+    }
+}
+
 function showAddMedicine() {
-    const now = new Date();
-    document.getElementById('medicineTime').value = formatDate(now, 'YYYY-MM-DDTHH:mm');
+    // 渲染药品和剂量选项
+    renderMedicineOptions();
+    renderMedicineDoseOptions();
+    
+    // 重置表单
     document.getElementById('medicineForm').reset();
     document.getElementById('medicinePhotoPreview').classList.add('hidden');
+    
+    // 设置默认日期为今天，时间留空
+    const now = new Date();
+    document.getElementById('medicineDate').value = formatDate(now, 'YYYY-MM-DD');
+    document.getElementById('medicineTimeInput').value = '';
+    
+    // 默认选中消炎药
+    document.getElementById('medicineName').value = '消炎药';
+    showMedicineInstruction();
+    
+    // 默认选中0.5剂量
+    document.getElementById('medicineDose').value = '0.5';
+    
+    // 恢复默认提交行为
+    document.getElementById('medicineForm').onsubmit = saveMedicine;
+    
+    // 恢复弹窗标题
+    document.querySelector('#modal-addMedicine h3').textContent = '记录喂药';
+    
     showModal('modal-addMedicine');
 }
 
@@ -1373,7 +1459,19 @@ async function saveMedicine(event) {
     const name = document.getElementById('medicineName').value;
     const dose = parseFloat(document.getElementById('medicineDose').value);
     const unit = document.getElementById('medicineUnit').value;
-    const time = document.getElementById('medicineTime').value || new Date().toISOString();
+    
+    // 从日期和时间输入框组合时间
+    const dateVal = document.getElementById('medicineDate').value;
+    const timeVal = document.getElementById('medicineTimeInput').value;
+    let time;
+    if (dateVal && timeVal) {
+        time = `${dateVal}T${timeVal}`;
+    } else if (dateVal) {
+        time = `${dateVal}T00:00`;
+    } else {
+        time = new Date().toISOString();
+    }
+    
     const note = document.getElementById('medicineNote').value;
     
     let photo = null;
@@ -1463,12 +1561,25 @@ function editMedicine(logId) {
     const log = logs.find(l => l.id === logId);
     if (!log) return;
     
+    // 先渲染药品和剂量选项
+    renderMedicineOptions();
+    renderMedicineDoseOptions();
+    
     // 填充表单
     document.getElementById('medicineName').value = log.name;
     document.getElementById('medicineDose').value = log.dose;
     document.getElementById('medicineUnit').value = log.unit;
-    document.getElementById('medicineTime').value = log.time;
     document.getElementById('medicineNote').value = log.note || '';
+    
+    // 解析时间，分别填充日期和时间
+    if (log.time) {
+        const timeObj = new Date(log.time);
+        document.getElementById('medicineDate').value = formatDate(timeObj, 'YYYY-MM-DD');
+        document.getElementById('medicineTimeInput').value = formatDate(timeObj, 'HH:mm');
+    }
+    
+    // 显示药品使用说明
+    showMedicineInstruction();
     
     // 隐藏照片预览（编辑时不重新上传照片）
     document.getElementById('medicinePhotoPreview').classList.add('hidden');
@@ -1490,7 +1601,19 @@ async function saveMedicineEdit(event, logId) {
     const name = document.getElementById('medicineName').value;
     const dose = parseFloat(document.getElementById('medicineDose').value);
     const unit = document.getElementById('medicineUnit').value;
-    const time = document.getElementById('medicineTime').value || new Date().toISOString();
+    
+    // 从日期和时间输入框组合时间
+    const dateVal = document.getElementById('medicineDate').value;
+    const timeVal = document.getElementById('medicineTimeInput').value;
+    let time;
+    if (dateVal && timeVal) {
+        time = `${dateVal}T${timeVal}`;
+    } else if (dateVal) {
+        time = `${dateVal}T00:00`;
+    } else {
+        time = new Date().toISOString();
+    }
+    
     const note = document.getElementById('medicineNote').value;
     
     // 处理照片（如果有新上传的照片）
@@ -2848,6 +2971,167 @@ function loadDefaultNames() {
     }
 }
 
+// 渲染设置页面的药品列表
+function renderMedicineSettings() {
+    const settings = getSettings();
+    const medicines = settings.medicines || [];
+    const container = document.getElementById('medicineListSettings');
+    
+    if (!container) return;
+    
+    if (medicines.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-400 text-center py-2">暂无药品</p>';
+        return;
+    }
+    
+    container.innerHTML = medicines.map((med, index) => `
+        <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-gray-800">${med.name}</div>
+                <div class="text-xs text-gray-500 truncate">${med.instruction || '无说明'}</div>
+            </div>
+            <div class="flex gap-1 ml-2">
+                <button onclick="editMedicineSetting(${index})" class="p-1.5 text-gray-400 hover:text-primary rounded-lg hover:bg-primary/5 transition-colors">
+                    <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="deleteMedicineSetting(${index})" class="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+    
+    lucide.createIcons();
+}
+
+// 显示新增药品弹窗
+function showAddMedicineModal() {
+    const name = prompt('请输入药品名称：');
+    if (!name) return;
+    
+    const instruction = prompt('请输入使用说明：', '');
+    if (instruction === null) return;
+    
+    const settings = getSettings();
+    settings.medicines = settings.medicines || [];
+    settings.medicines.push({ name: name, instruction: instruction });
+    saveSettings(settings);
+    
+    renderMedicineSettings();
+    showToast('药品已添加');
+}
+
+// 编辑药品
+function editMedicineSetting(index) {
+    const settings = getSettings();
+    const medicines = settings.medicines || [];
+    const med = medicines[index];
+    
+    if (!med) return;
+    
+    const name = prompt('请输入药品名称：', med.name);
+    if (!name) return;
+    
+    const instruction = prompt('请输入使用说明：', med.instruction || '');
+    if (instruction === null) return;
+    
+    medicines[index] = { name: name, instruction: instruction };
+    settings.medicines = medicines;
+    saveSettings(settings);
+    
+    renderMedicineSettings();
+    showToast('药品已更新');
+}
+
+// 删除药品
+function deleteMedicineSetting(index) {
+    if (!confirm('确定要删除这个药品吗？')) return;
+    
+    const settings = getSettings();
+    const medicines = settings.medicines || [];
+    medicines.splice(index, 1);
+    settings.medicines = medicines;
+    saveSettings(settings);
+    
+    renderMedicineSettings();
+    showToast('药品已删除');
+}
+
+// 渲染设置页面的剂量列表
+function renderDoseSettings() {
+    const settings = getSettings();
+    const doses = settings.medicineDoses || [];
+    const container = document.getElementById('doseListSettings');
+    
+    if (!container) return;
+    
+    if (doses.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-400">暂无剂量选项</p>';
+        return;
+    }
+    
+    container.innerHTML = doses.map((dose, index) => `
+        <div class="flex items-center gap-1 px-3 py-1.5 bg-amber-50 rounded-full">
+            <span class="text-sm text-amber-700">${dose}</span>
+            <button onclick="editDoseSetting(${index})" class="text-amber-500 hover:text-amber-600">
+                <i data-lucide="edit-2" class="w-3 h-3"></i>
+            </button>
+            <button onclick="deleteDoseSetting(${index})" class="text-amber-500 hover:text-red-500">
+                <i data-lucide="x" class="w-3 h-3"></i>
+            </button>
+        </div>
+    `).join('');
+    
+    lucide.createIcons();
+}
+
+// 显示新增剂量弹窗
+function showAddDoseModal() {
+    const dose = prompt('请输入剂量值：');
+    if (!dose) return;
+    
+    const settings = getSettings();
+    settings.medicineDoses = settings.medicineDoses || [];
+    settings.medicineDoses.push(dose);
+    saveSettings(settings);
+    
+    renderDoseSettings();
+    showToast('剂量已添加');
+}
+
+// 编辑剂量
+function editDoseSetting(index) {
+    const settings = getSettings();
+    const doses = settings.medicineDoses || [];
+    const dose = doses[index];
+    
+    if (!dose) return;
+    
+    const newDose = prompt('请输入新的剂量值：', dose);
+    if (!newDose) return;
+    
+    doses[index] = newDose;
+    settings.medicineDoses = doses;
+    saveSettings(settings);
+    
+    renderDoseSettings();
+    showToast('剂量已更新');
+}
+
+// 删除剂量
+function deleteDoseSetting(index) {
+    if (!confirm('确定要删除这个剂量选项吗？')) return;
+    
+    const settings = getSettings();
+    const doses = settings.medicineDoses || [];
+    doses.splice(index, 1);
+    settings.medicineDoses = doses;
+    saveSettings(settings);
+    
+    renderDoseSettings();
+    showToast('剂量已删除');
+}
+
 // 清除数据
 function clearAllData() {
     if (!confirm('确定要清除所有数据吗？此操作不可恢复！')) return;
@@ -2947,7 +3231,18 @@ function renderTimeline() {
         return;
     }
     
-    container.innerHTML = recentRecords.map(record => `
+    container.innerHTML = recentRecords.map(record => {
+        const timeObj = new Date(record.time);
+        const timeStr = formatDate(timeObj, 'HH:mm');
+        
+        // 计算预估下次喂奶时间（吃奶和喂食记录）
+        let nextFeedTime = '';
+        if (record.type === 'nursing' || record.type === 'feeding') {
+            const nextTime = new Date(timeObj.getTime() + 2 * 60 * 60 * 1000);
+            nextFeedTime = formatDate(nextTime, 'HH:mm');
+        }
+        
+        return `
         <div class="timeline-item">
             <div class="flex items-start gap-3">
                 <div class="w-8 h-8 bg-${record.color}/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -2955,7 +3250,8 @@ function renderTimeline() {
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="text-sm font-medium text-gray-800">${record.title}</div>
-                    <div class="text-xs text-gray-400">${formatTimeAgo(record.time)} · ${record.desc}</div>
+                    <div class="text-xs text-gray-400">${formatTimeAgo(record.time)} · ${timeStr} · ${record.desc}</div>
+                    ${nextFeedTime ? `<div class="text-xs text-amber-500 mt-1">预估下次喂奶为 ${nextFeedTime}</div>` : ''}
                     <div class="flex gap-2 mt-2">
                         <button onclick="editTimelineRecord('${record.type}', '${record.id}')" class="text-xs text-gray-400 hover:text-primary flex items-center gap-1">
                             <i data-lucide="edit-2" class="w-3 h-3"></i>
@@ -2969,7 +3265,7 @@ function renderTimeline() {
                 </div>
             </div>
         </div>
-    `).join('');
+    `}).join('');
     
     lucide.createIcons();
 }
@@ -3029,6 +3325,10 @@ function init() {
     
     // 加载默认幼崽名称配置
     loadDefaultNames();
+    
+    // 渲染药品和剂量设置
+    renderMedicineSettings();
+    renderDoseSettings();
     
     // 检查通知权限状态
     if ('Notification' in window) {
