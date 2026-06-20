@@ -340,7 +340,7 @@ function renderKittens() {
     const container = document.getElementById('kittensList');
     
     if (kittens.length === 0) {
-        container.innerHTML = '<p class="text-center text-gray-400 py-8">暂无幼崽数据</p>';
+        container.innerHTML = '<p class="col-span-2 text-center text-gray-400 py-8">暂无幼崽数据</p>';
         return;
     }
     
@@ -351,31 +351,27 @@ function renderKittens() {
             : kitten.weight;
         
         return `
-            <div class="bg-white rounded-2xl shadow-card p-4 mb-3">
-                <div class="flex items-start justify-between mb-3">
-                    <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 bg-gradient-to-br ${avatarColor} rounded-full flex items-center justify-center text-white text-lg font-bold shadow-soft">
-                            ${kitten.name.charAt(0)}
-                        </div>
-                        <div>
-                            <div class="font-bold text-gray-800">${kitten.name}</div>
-                            <div class="text-xs text-gray-400">出生 ${birthWeight}g · ${kitten.gender}</div>
-                        </div>
+            <div class="bg-white rounded-2xl shadow-card p-3 relative">
+                <button onclick="deleteKitten(${kitten.id})" class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-10 h-10 bg-gradient-to-br ${avatarColor} rounded-full flex items-center justify-center text-white text-sm font-bold shadow-soft">
+                        ${kitten.name.charAt(0)}
                     </div>
-                    <button onclick="showKittenDetail(${kitten.id})" class="text-gray-400 hover:text-primary transition-colors">
-                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
-                    </button>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold text-gray-800 text-sm truncate">${kitten.name}</div>
+                        <div class="text-xs text-gray-400">${birthWeight}g · ${kitten.gender}</div>
+                    </div>
                 </div>
-                
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-primary/5 rounded-xl p-3 text-center cursor-pointer" onclick="editKittenWeight(${kitten.id})">
-                        <div class="text-lg font-bold text-primary">${kitten.weight}g</div>
-                        <div class="text-xs text-gray-500">当前体重（点击修改）</div>
-                    </div>
-                    <div class="bg-gray-50 rounded-xl p-3">
-                        <div class="text-xs text-gray-500 mb-1">备注</div>
-                        <div class="text-sm text-gray-700 line-clamp-2">${kitten.note || '暂无备注'}</div>
-                    </div>
+                <div class="bg-primary/5 rounded-xl p-2 text-center cursor-pointer" onclick="editKittenWeight(${kitten.id})">
+                    <div class="text-base font-bold text-primary">${kitten.weight}g</div>
+                    <div class="text-xs text-gray-500">点击修改</div>
+                </div>
+                <div class="mt-2 text-center">
+                    <button onclick="showKittenDetail(${kitten.id})" class="text-xs text-primary hover:text-primary/80">
+                        查看详情
+                    </button>
                 </div>
             </div>
         `;
@@ -419,6 +415,175 @@ function editKittenWeight(kittenId) {
     saveKittens(kittens);
     renderKittens();
     showToast('体重已更新');
+}
+
+// 显示体重趋势图弹窗
+function showWeightChart() {
+    showModal('modal-weightChart');
+    
+    // 延迟渲染图表，确保弹窗已显示
+    setTimeout(() => {
+        renderKittensWeightChart();
+    }, 100);
+}
+
+// 渲染所有幼崽体重趋势图
+function renderKittensWeightChart() {
+    const ctx = document.getElementById('kittensWeightChart');
+    if (!ctx) return;
+    
+    const kittens = getKittens();
+    const colors = [
+        'rgba(167, 139, 250, 1)',
+        'rgba(249, 168, 212, 1)',
+        'rgba(251, 191, 36, 1)',
+        'rgba(34, 197, 94, 1)',
+        'rgba(59, 130, 246, 1)'
+    ];
+    
+    // 获取所有日期
+    const allDates = new Set();
+    kittens.forEach(kitten => {
+        (kitten.weightHistory || []).forEach(w => allDates.add(w.date));
+    });
+    const labels = Array.from(allDates).sort();
+    
+    const datasets = kittens.map((kitten, index) => ({
+        label: kitten.name,
+        data: labels.map(date => {
+            const record = (kitten.weightHistory || []).find(w => w.date === date);
+            return record ? record.weight : null;
+        }),
+        borderColor: colors[index % colors.length],
+        backgroundColor: colors[index % colors.length].replace('1)', '0.1)'),
+        tension: 0.3,
+        pointRadius: 3,
+        spanGaps: true
+    }));
+    
+    if (window.kittensWeightChartInstance) {
+        window.kittensWeightChartInstance.destroy();
+    }
+    
+    window.kittensWeightChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+// 显示新增幼崽弹窗
+function showAddKitten() {
+    // 重置表单
+    document.getElementById('kittenForm').reset();
+    document.getElementById('editKittenId').value = '';
+    
+    // 设置默认出生日期为今天
+    const now = new Date();
+    document.getElementById('editKittenBirthDate').value = formatDate(now, 'YYYY-MM-DD');
+    
+    // 修改弹窗标题和提交行为
+    document.querySelector('#modal-editKitten h3').textContent = '新增幼崽';
+    document.getElementById('kittenForm').onsubmit = saveNewKitten;
+    
+    showModal('modal-editKitten');
+}
+
+// 保存新幼崽
+function saveNewKitten(event) {
+    event.preventDefault();
+    
+    const name = document.getElementById('editKittenName').value || '幼崽';
+    const gender = document.getElementById('editKittenGender').value || '公';
+    const weight = parseFloat(document.getElementById('editKittenWeight').value) || 100;
+    const color = document.getElementById('editKittenColor').value || '未知';
+    const birthDate = document.getElementById('editKittenBirthDate').value || formatDate(new Date(), 'YYYY-MM-DD');
+    const note = document.getElementById('editKittenNote').value || '';
+    
+    // 生成新ID
+    const kittens = getKittens();
+    const maxId = kittens.length > 0 ? Math.max(...kittens.map(k => k.id)) : 0;
+    const newId = maxId + 1;
+    
+    const newKitten = {
+        id: newId,
+        name: name,
+        gender: gender,
+        weight: weight,
+        color: color,
+        birthDate: birthDate,
+        note: note,
+        weightHistory: [{ date: birthDate, weight: weight }]
+    };
+    
+    kittens.push(newKitten);
+    saveKittens(kittens);
+    
+    // 恢复表单默认行为
+    document.getElementById('kittenForm').onsubmit = saveKitten;
+    document.querySelector('#modal-editKitten h3').textContent = '编辑幼崽信息';
+    
+    closeModal('modal-editKitten');
+    showToast('幼崽已添加');
+    renderKittens();
+}
+
+// 删除幼崽
+function deleteKitten(kittenId) {
+    if (!confirm('确定要删除这只幼崽吗？相关记录也会被处理。')) return;
+    
+    const kittens = getKittens();
+    const newKittens = kittens.filter(k => k.id !== kittenId);
+    
+    // 处理吃奶记录
+    const nursingLogs = getNursingLogs();
+    const newNursingLogs = nursingLogs.map(log => {
+        const newKittenIds = log.kittenIds.filter(id => id !== kittenId);
+        return { ...log, kittenIds: newKittenIds };
+    }).filter(log => log.kittenIds.length > 0);
+    saveNursingLogs(newNursingLogs);
+    
+    // 处理幼崽记录
+    const kittenRecords = getKittenRecords();
+    const newKittenRecords = kittenRecords.map(record => {
+        const newKittenIds = record.kittenIds.filter(id => id !== kittenId);
+        return { ...record, kittenIds: newKittenIds };
+    }).filter(record => record.kittenIds.length > 0);
+    saveKittenRecords(newKittenRecords);
+    
+    saveKittens(newKittens);
+    renderKittens();
+    showToast('幼崽已删除');
 }
 
 let currentKittenId = null;
@@ -492,6 +657,10 @@ function editKitten() {
     document.getElementById('editKittenColor').value = kitten.color;
     document.getElementById('editKittenBirthDate').value = birthDate;
     document.getElementById('editKittenNote').value = kitten.note || '';
+    
+    // 恢复弹窗标题和提交行为
+    document.querySelector('#modal-editKitten h3').textContent = '编辑幼崽信息';
+    document.getElementById('kittenForm').onsubmit = saveKitten;
     
     closeModal('modal-kittenDetail');
     showModal('modal-editKitten');

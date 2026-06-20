@@ -164,13 +164,18 @@
                     <i data-lucide="baby" class="w-5 h-5 text-primary"></i>
                     幼崽管理
                 </h2>
-                <button onclick="showAddKitten()" class="bg-primary text-white px-4 py-2 rounded-full text-sm font-medium active:scale-95 transition-transform shadow-soft flex items-center gap-1">
-                    <i data-lucide="plus" class="w-4 h-4"></i>
-                    新增
-                </button>
+                <div class="flex items-center gap-2">
+                    <button onclick="showWeightChart()" class="bg-white text-primary px-3 py-2 rounded-full text-sm font-medium active:scale-95 transition-transform shadow-soft flex items-center gap-1">
+                        <i data-lucide="line-chart" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="showAddKitten()" class="bg-primary text-white px-4 py-2 rounded-full text-sm font-medium active:scale-95 transition-transform shadow-soft flex items-center gap-1">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        新增
+                    </button>
+                </div>
             </div>
-            <!-- 幼崽列表（竖列卡片） -->
-            <div id="kittensList" class="space-y-3">
+            <!-- 幼崽列表（2列网格） -->
+            <div id="kittensList" class="grid grid-cols-2 gap-3">
                 <!-- 幼崽卡片由JS生成 -->
             </div>
             
@@ -969,6 +974,22 @@
                     <button type="submit" class="flex-1 py-3 bg-primary text-white rounded-xl font-medium active:scale-95 transition-transform">保存</button>
                 </div>
             </form>
+        </div>
+    </div>
+    
+    <!-- 弹窗：体重趋势图 -->
+    <div id="modal-weightChart" class="modal hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div class="modal-overlay absolute inset-0 bg-black/50" onclick="closeModal('modal-weightChart')"></div>
+        <div class="modal-content bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg p-6 relative z-10 animate-slideUp">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-gray-800">幼崽体重趋势</h3>
+                <button onclick="closeModal('modal-weightChart')" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100">
+                    <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
+                </button>
+            </div>
+            <div class="h-64">
+                <canvas id="kittensWeightChart"></canvas>
+            </div>
         </div>
     </div>
     
