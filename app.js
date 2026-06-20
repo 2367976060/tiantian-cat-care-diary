@@ -3235,9 +3235,11 @@ function renderTimeline() {
         const timeObj = new Date(record.time);
         const timeStr = formatDate(timeObj, 'HH:mm');
         
-        // 计算预估下次喂奶时间（吃奶和喂食记录）
+        // 计算预估下次喂奶时间（吃奶/喂食记录，或内容包含"喂奶"的记录）
         let nextFeedTime = '';
-        if (record.type === 'nursing' || record.type === 'feeding') {
+        const contentToCheck = record.title + record.desc;
+        const isFeedRelated = record.type === 'nursing' || record.type === 'feeding' || contentToCheck.includes('喂奶');
+        if (isFeedRelated) {
             const nextTime = new Date(timeObj.getTime() + 2 * 60 * 60 * 1000);
             nextFeedTime = formatDate(nextTime, 'HH:mm');
         }
