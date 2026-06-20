@@ -411,12 +411,15 @@ function editKitten() {
     const kitten = kittens.find(k => k.id === currentKittenId);
     if (!kitten) return;
     
+    // 确保birthDate字段存在且格式正确
+    const birthDate = kitten.birthDate || '2024-06-15';
+    
     document.getElementById('editKittenId').value = kitten.id;
     document.getElementById('editKittenName').value = kitten.name;
     document.getElementById('editKittenGender').value = kitten.gender;
     document.getElementById('editKittenWeight').value = kitten.weight;
     document.getElementById('editKittenColor').value = kitten.color;
-    document.getElementById('editKittenBirthDate').value = kitten.birthDate;
+    document.getElementById('editKittenBirthDate').value = birthDate;
     document.getElementById('editKittenNote').value = kitten.note || '';
     
     closeModal('modal-kittenDetail');
@@ -431,19 +434,31 @@ function saveKitten(event) {
     const kittens = getKittens();
     const kittenIndex = kittens.findIndex(k => k.id === kittenId);
     
-    if (kittenIndex === -1) return;
+    if (kittenIndex === -1) {
+        showToast('保存失败：未找到幼崽');
+        return;
+    }
     
     const oldWeight = kittens[kittenIndex].weight;
     const newWeight = parseFloat(document.getElementById('editKittenWeight').value) || 0;
     
+    // 获取出生日期并验证格式
+    let birthDate = document.getElementById('editKittenBirthDate').value;
+    if (!birthDate || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+        birthDate = '2024-06-15'; // 默认值
+    }
+    
+    // 创建新的幼崽对象，确保所有字段都存在
+    const oldKitten = kittens[kittenIndex];
     kittens[kittenIndex] = {
-        ...kittens[kittenIndex],
+        id: oldKitten.id,
         name: document.getElementById('editKittenName').value || '幼崽',
         gender: document.getElementById('editKittenGender').value || '公',
         weight: newWeight,
         color: document.getElementById('editKittenColor').value || '未知',
-        birthDate: document.getElementById('editKittenBirthDate').value || new Date().toISOString().split('T')[0],
-        note: document.getElementById('editKittenNote').value || ''
+        birthDate: birthDate,
+        note: document.getElementById('editKittenNote').value || '',
+        weightHistory: oldKitten.weightHistory || [{ date: birthDate, weight: newWeight }]
     };
     
     // 如果体重变化，添加到体重历史
@@ -461,12 +476,21 @@ function saveKitten(event) {
         kittens[kittenIndex].weightHistory = weightHistory;
     }
     
-    saveKittens(kittens);
+    // 保存到localStorage
+    const saveSuccess = saveKittens(kittens);
+    
+    if (!saveSuccess) {
+        showToast('保存失败');
+        return;
+    }
+    
     closeModal('modal-editKitten');
     showToast('保存成功');
     
     // 重新显示详情
-    showKittenDetail(kittenId);
+    setTimeout(() => {
+        showKittenDetail(kittenId);
+    }, 100);
     renderKittens();
 }
 
